@@ -2,6 +2,12 @@
 
 Measured on 2026-03-13 against live Jira Cloud and Confluence Cloud APIs (your-site.atlassian.net).
 
+> **Note on the sample data:** the issue content shown in the examples below is illustrative
+> placeholder data, not the issue that was actually measured. All character and token counts in
+> this document are from the original measured issue, so re-counting the sample text printed here
+> will give slightly lower numbers (roughly 5-8% for the single-issue examples). The relative
+> reductions and the comparison between layers are unaffected.
+
 ## Summary
 
 Atlas CLI reduces context consumed by Atlassian operations by **60% vs Docker MCP** and **96% vs raw API**.
@@ -17,6 +23,8 @@ This document measures **per-call output size** (how much each tool result adds 
 ## Example Outputs: `jira get issue PROJ-123`
 
 The same issue fetched through all three layers. This is what enters the model context.
+The counts in each heading are from the measured issue; the body text shown is placeholder data
+(see the note at the top of this file).
 
 ### Raw Atlassian API (27,788 chars, ~6,947 tokens)
 
