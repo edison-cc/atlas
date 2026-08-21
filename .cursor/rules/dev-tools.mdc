@@ -1,0 +1,47 @@
+---
+description: Developer tool routing for GitHub and Atlassian operations
+globs:
+alwaysApply: true
+---
+
+# External Platform Tool Routing
+
+Do NOT use Docker MCP for GitHub or Atlassian operations. Use the dedicated CLIs below via the Shell tool.
+
+## GitHub
+
+Use the `gh` CLI for all GitHub operations.
+
+- PRs: `gh pr list`, `gh pr view 123`, `gh pr create`, `gh pr merge 123`
+- Issues: `gh issue list`, `gh issue view 42`, `gh issue create`
+- Search: `gh search issues "query"`, `gh search prs "query"`, `gh search code "query"`
+- Diff/checks: `gh pr diff 123`, `gh pr checks 123`
+- Comments: `gh issue comment 42 --body "..."`, `gh pr comment 123 --body "..."`
+- Arbitrary API: `gh api repos/{owner}/{repo}/...`
+- Compact output: `gh pr list --json number,title,state --jq '.[] | "#\(.number) \(.title)"'`
+
+## Atlassian (Jira, Confluence)
+
+Use the `atlas` CLI for all Jira and Confluence operations.
+
+### Jira
+
+- Get issue: `atlas jira get <KEY>` (add `--comments` for comments)
+- Search: `atlas jira search "<JQL>" --limit 10` (add `--story-points`, `--parent` for extra columns)
+- Children: `atlas jira children <KEY> --story-points` (recursive epic/feature traversal)
+- Parent: `atlas jira parent <KEY>` (walk up the hierarchy)
+- Fields: `atlas jira fields --search "story"` (discover custom field IDs)
+- Create: `atlas jira create --project PROJ --type Story --summary "..." --parent PROJ-100 --ac "..."`
+- Update: `atlas jira update <KEY> --summary "..." --description "..." --ac "..."`
+- Comment: `atlas jira comment <KEY> "comment text"`
+- Transitions: `atlas jira transitions <KEY>` then `atlas jira transition <KEY> <ID>`
+- Discover flags: `atlas jira create --help`, `atlas jira update --help`
+
+### Confluence
+
+- Get page: `atlas conf get <PAGE-ID>`
+- Search: `atlas conf search "query" --space SPACE`
+- Page tree: `atlas conf tree <SPACE-KEY>`
+- Create: `atlas conf create --space SPACE --title "..." --body "..."`
+- Update: `atlas conf update <PAGE-ID> --title "..." --body "..."`
+- Publish markdown with diagrams: `atlas conf publish <PAGE-ID> input.md --title "..."`
