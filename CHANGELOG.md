@@ -6,6 +6,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-05
+
+### Fixed
+
+- Package build with setuptools 77+. The MIT license is declared with the SPDX expression, so the duplicate license classifier is removed.
+
 ## [0.4.0] - 2026-11-05
 
 ### Changed
