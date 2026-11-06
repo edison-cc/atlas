@@ -318,8 +318,8 @@ wc -c jira_*.json confluence_*.json | tail -1   # 108,867 chars total
 
 ```bash
 # Extract and measure the Atlassian section of the routing rule
-wc -c .cursor/rules/dev-tools.mdc   # 1,710 chars (full file including GitHub)
-# Atlassian section only: 901 chars
+# The routing rule used for this measurement was 1,710 chars including a GitHub section.
+# Atlassian section only: 901 chars.
 ```
 
 ## Methodology
@@ -328,6 +328,6 @@ wc -c .cursor/rules/dev-tools.mdc   # 1,710 chars (full file including GitHub)
 - **Tokens**: approximate, using 1 token ~ 4 characters (conservative estimate for mixed English/JSON)
 - **MCP schemas**: measured from the JSON descriptor files Cursor stores at `~/.cursor/projects/*/mcps/<server>/tools/*.json`. These files contain the tool name, description, and parameter schema. Cursor does not inject all schemas into every request; instead the model reads individual schema files on demand via the `CallMcpTool` workflow. Once read, a schema enters the conversation history and persists for all subsequent turns
 - **MCP infrastructure**: the per-turn baseline (~1,500 tokens) is estimated from the `CallMcpTool` / `FetchMcpResource` / `ListMcpResources` tool definitions plus MCP server metadata and usage instructions observed in the system prompt. This overhead is present on every turn when any MCP server is enabled
-- **CLI rule**: measured from the Atlassian section of [`.cursor/rules/dev-tools.mdc`](.cursor/rules/dev-tools.mdc), starting from `## Atlassian` to end of file. Cursor injects `.mdc` rule content as text in the system instructions
+- **CLI rule**: measured from the Atlassian section of the routing text given to the agent, starting from `## Atlassian` to the end of that section (901 chars). The editor injects that text into the system instructions.
 - **Accumulating schema cost**: when the model reads a schema file before calling an MCP tool, the full schema content enters the conversation history as a tool result. This content is included in every subsequent API request for the remainder of the conversation
 - **Context window**: tool definitions, system instructions, and conversation history all consume tokens from the same finite context window

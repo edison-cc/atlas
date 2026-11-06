@@ -127,17 +127,31 @@ The config template is [config.json.example](https://raw.githubusercontent.com/e
 
 </details>
 
-## Editor setup
+## Coding agents
 
-Atlas CLI is designed to be called by an AI coding agent via the shell tool. The agent needs a rule or instruction file that routes Atlassian operations through `atlas` instead of MCP. Choose the section that matches your editor.
+Atlas is a shell command. An agent that can run a terminal can use it. Put the instruction below in the file that agent already reads, and commit it if the whole team should follow it.
 
-### VS Code Copilot
+[AGENTS.md](https://agents.md/) at the project root is the shared file. Codex, GitHub Copilot, Cursor, and Claude Code (when the repo has no `CLAUDE.md`) load it.
 
-Copilot's agent mode can call `atlas` through the terminal. This repo ships a ready-to-use instruction file at [`.github/copilot-instructions.md`](.github/copilot-instructions.md) that Copilot loads automatically when you open this repo.
+```markdown
+## Atlassian
 
-#### Per-project instructions (for shared projects)
+Use the `atlas` CLI for every Jira and Confluence operation. Do not call an Atlassian MCP server.
 
-To add atlas routing to another project, copy the instruction file:
+Discover flags with `atlas jira --help` and `atlas conf --help`. A Jira search needs a restriction, such as a project clause. `--ac` and `--story-points` need `acceptance_criteria_field` and `story_points_field` in the atlas config. Discover the ids with `atlas jira fields --search`.
+```
+
+Some agents look for their own file first:
+
+| Agent | Where to put the same instruction |
+|---|---|
+| Claude Code | `CLAUDE.md`. If that file already exists, add a line `@AGENTS.md` so it still loads the shared instructions. |
+| Gemini CLI | `GEMINI.md`, or add `AGENTS.md` to `context.fileName` in `.gemini/settings.json`. |
+| GitHub Copilot | `AGENTS.md`, or [`.github/copilot-instructions.md`](.github/copilot-instructions.md). This repo ships a copy you can reuse. |
+| Cursor | `AGENTS.md`. |
+
+<details>
+<summary><strong>Copy the Copilot instruction file</strong></summary>
 
 ```bash
 mkdir -p .github
@@ -145,76 +159,7 @@ curl -fsSL https://raw.githubusercontent.com/edison-cc/atlas/main/.github/copilo
   -o .github/copilot-instructions.md
 ```
 
-Commit `.github/copilot-instructions.md` to the repo so all contributors have it.
-
-#### Global user instructions (all workspaces)
-
-To make Copilot aware of `atlas` in every workspace, add the following to your VS Code **User** `settings.json` (open with `Cmd+Shift+P` → "Preferences: Open User Settings (JSON)"):
-
-```json
-{
-  "github.copilot.chat.codeGeneration.instructions": [
-    {
-      "text": "Use the `atlas` CLI for all Jira and Confluence operations. Run `atlas jira --help` or `atlas conf --help` to discover commands and flags."
-    }
-  ]
-}
-```
-
-### Cursor
-
-Cursor's agent doesn't know about `atlas` by default. The recommended path depends on your situation:
-
-- **Individual use** → install the Cursor skill. It auto-discovers new flags via `--help` and works across all workspaces.
-- **Shared project** → commit a per-project rule so all contributors get it automatically.
-
-#### Skill install (individual use)
-
-```bash
-mkdir -p ~/.cursor/skills/atlas-cli
-curl -fsSL https://raw.githubusercontent.com/edison-cc/atlas/main/.cursor/skills/atlas-cli/SKILL.md \
-  -o ~/.cursor/skills/atlas-cli/SKILL.md
-```
-
-#### Per-project rule (for shared projects)
-
-This repo ships a ready-to-use rule at [`.cursor/rules/dev-tools.mdc`](.cursor/rules/dev-tools.mdc). In your target project, run:
-
-```bash
-mkdir -p .cursor/rules
-curl -fsSL https://raw.githubusercontent.com/edison-cc/atlas/main/.cursor/rules/dev-tools.mdc \
-  -o .cursor/rules/dev-tools.mdc
-```
-
-Commit `.cursor/rules/dev-tools.mdc` to the repo so all contributors have it. To update after a new release, re-run the `curl` command above.
-
-#### Global user rule
-
-If you prefer not to install the skill file, paste the following into **Cursor Settings > Rules > User Rules**:
-
-```
-Use the `atlas` CLI for all Jira and Confluence operations.
-
-- Get issue: atlas jira get <KEY>
-- Search:    atlas jira search "<JQL>" --limit 10 --story-points --parent
-- Children:  atlas jira children <KEY> --story-points --depth 2
-- Parent:    atlas jira parent <KEY> --depth 5
-- Fields:    atlas jira fields --search "story"
-- Create:    atlas jira create --project PROJ --type Story --summary "..." --parent PROJ-100 --ac "..."
-- Update:    atlas jira update <KEY> --summary "..." --description "..." --ac "..."
-- `--ac` and `--story-points` need `acceptance_criteria_field` and `story_points_field` in the atlas config. Discover ids with `atlas jira fields --search`.
-- Comment:   atlas jira comment <KEY> "comment text"
-- Transitions: atlas jira transitions <KEY> then atlas jira transition <KEY> <ID>
-- Discover flags: atlas jira create --help, atlas jira update --help
-- Get page:  atlas conf get <PAGE-ID>
-- Search:    atlas conf search "query" --space SPACE
-- Page tree: atlas conf tree <SPACE-KEY>
-- Create:    atlas conf create --space SPACE --title "..." --body "..."
-- Update:    atlas conf update <PAGE-ID> --title "..." --body "..."
-- Publish:   atlas conf publish <PAGE-ID> input.md --title "..."
-```
-
-To update after a new release, copy the latest snippet from this README and re-paste it into User Rules.
+</details>
 
 ## CLI reference
 
