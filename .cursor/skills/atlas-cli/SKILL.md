@@ -38,6 +38,7 @@ For Confluence URLs like `https://X.atlassian.net/wiki/spaces/SPACE/pages/123456
 - Fields: `atlas jira fields --search "story"` (discover custom field IDs)
 - Create: `atlas jira create --project PROJ --type Story --summary "..." --parent PROJ-100 --ac "..."`
 - Update: `atlas jira update <KEY> --summary "..." --description "..." --ac "..."`
+- `--ac` and `--story-points` need `acceptance_criteria_field` and `story_points_field` in the atlas config. Discover ids with `atlas jira fields --search`. A Jira search needs a restriction, such as a project clause.
 - Comment: `atlas jira comment <KEY> "comment text"`
 - Transitions: `atlas jira transitions <KEY>` then `atlas jira transition <KEY> <ID>`
 

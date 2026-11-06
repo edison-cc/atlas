@@ -44,21 +44,37 @@ Median per-call latency drops from **~5,300 ms to ~400 ms** -- a **12.8x speedup
 
 ### Prerequisites
 
-- Python 3.10+
 - [uv](https://docs.astral.sh/uv/) — install with:
   - macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
-  - Windows: install [Git for Windows](https://gitforwindows.org/) (includes Git Bash), then run the macOS/Linux command above inside Git Bash
+  - Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
 - An [Atlassian API token](https://id.atlassian.com/manage-profile/security/api-tokens)
 
+uv downloads a Python 3.10+ for the tool, so a separate Python install is not required.
+
 ### 1. Install
+
+```bash
+uv tool install atlassian-atlas
+```
+
+Close and reopen your terminal if `atlas` is not found. The command is installed to `~/.local/bin`.
+
+To try it without installing: `uvx atlassian-atlas --help`
+
+Without uv, use pipx: `pipx install atlassian-atlas`
+
+Verify: `atlas --help`
+
+<details>
+<summary><strong>Install from source</strong></summary>
+
+This builds the default branch rather than a release. Use it to try unreleased changes.
 
 ```bash
 uv tool install git+https://github.com/edison-cc/atlas.git
 ```
 
-> **Windows:** Close and reopen your terminal after installing `uv` and again after `uv tool install` for `PATH` changes to take effect.
-
-Or install from source:
+Or clone and install into the current environment:
 
 ```bash
 git clone https://github.com/edison-cc/atlas.git
@@ -66,9 +82,9 @@ cd atlas
 uv pip install .
 ```
 
-> **No uv?** You can also use `pip install .` in a virtual environment.
+Without uv, use `pip install .` in a virtual environment. That path needs Python 3.10+.
 
-Verify: `atlas --help`
+</details>
 
 ### 2. Configure Atlassian credentials
 
@@ -78,7 +94,9 @@ Create `~/.config/atlas/config.json`:
 {
   "atlassian_email": "you@example.com",
   "atlassian_api_token": "your-api-token",
-  "atlassian_base_url": "https://your-site.atlassian.net/"
+  "atlassian_base_url": "https://your-site.atlassian.net/",
+  "story_points_field": "",
+  "acceptance_criteria_field": ""
 }
 ```
 
@@ -86,22 +104,26 @@ Generate a token at https://id.atlassian.com/manage-profile/security/api-tokens
 
 > **Tip:** You can use environment variables instead of a config file: `ATLASSIAN_EMAIL`, `ATLASSIAN_API_TOKEN`, `ATLASSIAN_BASE_URL`.
 >
-> **Story points not showing?** Your Jira instance may use a non-standard field ID. Run `atlas jira fields --search "story"` to find it, then add `"story_points_field": "customfield_XXXXX"` to your config.
+> Create a **classic** API token ("Create API token", not "Create API token with scopes"). Atlas sends that token to your site URL. A scoped token only works against `api.atlassian.com` and is rejected here.
+>
+> Jira and Confluence must both be on this site. Atlas calls Jira at `/rest/api/3` and Confluence at `/wiki/rest/api` on `atlassian_base_url`.
+>
+> **Story points or acceptance criteria?** Field ids differ by site, and a blank value leaves the feature off. Discover them with `atlas jira fields --search "story"` or `atlas jira fields --search "acceptance"`, then set `story_points_field` and `acceptance_criteria_field`. Until then, `--story-points` is skipped and `--ac` exits with an error.
 
 ### Upgrade
 
 ```bash
-uv tool upgrade atlas-cli
+uv tool upgrade atlassian-atlas
 ```
+
+If you installed with pipx: `pipx upgrade atlassian-atlas`
 
 <details>
 <summary><strong>Windows notes</strong></summary>
 
-We recommend **Git Bash** (included with [Git for Windows](https://gitforwindows.org/)). All commands in this guide work identically in Git Bash — no Windows-specific steps needed.
+PowerShell is enough. After the uv installer and `uv tool install`, close and reopen the terminal so `PATH` changes take effect.
 
-After installing `uv` and `atlas`, close and reopen Git Bash for `PATH` changes to take effect.
-
-**No Git Bash?** If you are using PowerShell, download [config.json.example](https://raw.githubusercontent.com/edison-cc/atlas/main/config.json.example) as a config template and fill in your values, and use `Invoke-WebRequest` in place of `curl`.
+The config template is [config.json.example](https://raw.githubusercontent.com/edison-cc/atlas/main/config.json.example). In PowerShell, download it with `Invoke-WebRequest`.
 
 </details>
 
@@ -180,6 +202,7 @@ Use the `atlas` CLI for all Jira and Confluence operations.
 - Fields:    atlas jira fields --search "story"
 - Create:    atlas jira create --project PROJ --type Story --summary "..." --parent PROJ-100 --ac "..."
 - Update:    atlas jira update <KEY> --summary "..." --description "..." --ac "..."
+- `--ac` and `--story-points` need `acceptance_criteria_field` and `story_points_field` in the atlas config. Discover ids with `atlas jira fields --search`.
 - Comment:   atlas jira comment <KEY> "comment text"
 - Transitions: atlas jira transitions <KEY> then atlas jira transition <KEY> <ID>
 - Discover flags: atlas jira create --help, atlas jira update --help
@@ -198,6 +221,8 @@ To update after a new release, copy the latest snippet from this README and re-p
 Atlas also works as a standalone terminal CLI without any editor integration.
 
 ### Jira
+
+Jira rejects a search with no restriction, such as `order by created DESC`. Include a project, updated date, or other clause.
 
 ```bash
 atlas jira get PROJ-123  # issue details
@@ -231,3 +256,7 @@ atlas conf --help  # list commands
 ## Adding commands
 
 Each command is a single file in `atlas/commands/`. Create a new file with `register(subparser)` and `run(args, client)` functions — it's auto-discovered.
+
+## License
+
+[MIT](LICENSE)

@@ -3,8 +3,7 @@
 import json
 
 from atlas.adf import markdown_to_adf
-
-ACCEPTANCE_CRITERIA_FIELD = "customfield_10046"
+from atlas.config import require_acceptance_criteria_field
 
 
 def register(subparser):
@@ -14,7 +13,7 @@ def register(subparser):
     p.add_argument("--description", help="New Markdown description")
     p.add_argument("--assignee", help="New assignee account ID")
     p.add_argument("--labels", help="Comma-separated labels (replaces existing)")
-    p.add_argument("--ac", help="New Markdown acceptance criteria")
+    p.add_argument("--ac", help="New Markdown acceptance criteria (requires acceptance_criteria_field in config)")
     p.add_argument("--fields", help="Additional fields as JSON object")
     p.set_defaults(func=run)
 
@@ -35,7 +34,7 @@ def run(args, client):
         fields["labels"] = [l.strip() for l in args.labels.split(",")]
 
     if args.ac:
-        fields[ACCEPTANCE_CRITERIA_FIELD] = markdown_to_adf(args.ac)
+        fields[require_acceptance_criteria_field()] = markdown_to_adf(args.ac)
 
     if args.fields:
         extra = json.loads(args.fields)

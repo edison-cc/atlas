@@ -1,6 +1,6 @@
 """atlas jira search <JQL> -- search issues and display as Markdown table."""
 
-from atlas.config import get_story_points_field
+from atlas.config import get_story_points_field, warn_story_points_unconfigured
 
 
 def register(subparser):
@@ -9,7 +9,7 @@ def register(subparser):
     p.add_argument("--fields", default="key,summary,status,assignee,updated",
                     help="Comma-separated fields (default: key,summary,status,assignee,updated)")
     p.add_argument("--story-points", action="store_true",
-                    help="Include story points column")
+                    help="Include story points column (requires story_points_field in config)")
     p.add_argument("--parent", action="store_true",
                     help="Include parent key column")
     p.add_argument("--limit", type=int, default=20, help="Max results (default: 20)")
@@ -20,8 +20,11 @@ def run(args, client):
     show_sp = args.story_points
     show_parent = args.parent
     sp_field = get_story_points_field()
+    if show_sp and not sp_field:
+        warn_story_points_unconfigured()
+        show_sp = False
     api_fields = args.fields
-    if show_sp and sp_field not in api_fields:
+    if show_sp and sp_field not in [part.strip() for part in api_fields.split(",")]:
         api_fields = f"{api_fields},{sp_field}"
     if show_parent and "parent" not in api_fields.split(","):
         api_fields = f"{api_fields},parent"
@@ -60,7 +63,7 @@ def run(args, client):
         updated = _date(fields.get("updated"))
         cols = [key, summary]
         if show_sp:
-            cols.append(str(_story_points(fields)))
+            cols.append(str(_story_points(fields, sp_field)))
         cols.extend([status, assignee])
         if show_parent:
             cols.append(_parent_key(fields))
@@ -106,8 +109,10 @@ def _date(iso_str):
     return iso_str[:10]
 
 
-def _story_points(fields):
-    val = fields.get(get_story_points_field())
+def _story_points(fields, sp_field):
+    if not sp_field:
+        return "—"
+    val = fields.get(sp_field)
     if val is None:
         return "—"
     return int(val) if val == int(val) else val

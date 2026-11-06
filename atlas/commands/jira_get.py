@@ -1,9 +1,29 @@
 """atlas jira get <KEY> -- show issue details as compact Markdown."""
 
 from atlas.adf import adf_to_markdown
-from atlas.config import get_story_points_field
+from atlas.config import get_acceptance_criteria_field, get_story_points_field
 
-ACCEPTANCE_CRITERIA_FIELD = "customfield_10046"
+
+def issue_fields(
+    requested: str | None,
+    include_comments: bool,
+    extra: list[str | None] | None = None,
+) -> str:
+    """Build the Jira fields list for an issue fetch.
+
+    ``*navigable`` does not include comments on current Jira Cloud, so comments
+    are requested explicitly. Configured custom fields are appended the same way.
+    """
+    if requested:
+        fields = [part.strip() for part in requested.split(",") if part.strip()]
+    else:
+        fields = ["*navigable"]
+    if include_comments and "comment" not in fields:
+        fields.append("comment")
+    for field_id in extra or []:
+        if field_id and field_id not in fields:
+            fields.append(field_id)
+    return ",".join(fields)
 
 
 def register(subparser):
@@ -17,14 +37,11 @@ def register(subparser):
 
 
 def run(args, client):
-    params = {}
-    if args.fields:
-        params["fields"] = args.fields
-    else:
-        params["fields"] = "*navigable"
-
-    if args.comments:
-        params["expand"] = "renderedFields"
+    sp_field = get_story_points_field()
+    ac_field = get_acceptance_criteria_field()
+    params = {
+        "fields": issue_fields(args.fields, args.comments, [sp_field, ac_field]),
+    }
 
     data = client.jira_get(f"issue/{args.key}", params=params)
     fields = data.get("fields", {})
@@ -39,7 +56,7 @@ def run(args, client):
     created = _date(fields.get("created"))
     updated = _date(fields.get("updated"))
 
-    story_points = _story_points(fields)
+    story_points = _story_points(fields, sp_field)
     sprint = _extract_sprint(fields)
     parent_key, parent_type = _extract_parent(fields)
 
@@ -66,7 +83,7 @@ def run(args, client):
             print()
             print(desc_text)
 
-    ac_adf = fields.get(ACCEPTANCE_CRITERIA_FIELD)
+    ac_adf = fields.get(ac_field) if ac_field else None
     if ac_adf:
         ac_text = adf_to_markdown(ac_adf)
         if ac_text:
@@ -106,8 +123,10 @@ def _date(iso_str):
     return iso_str[:10]
 
 
-def _story_points(fields):
-    val = fields.get(get_story_points_field())
+def _story_points(fields, sp_field):
+    if not sp_field:
+        return None
+    val = fields.get(sp_field)
     if val is None:
         return None
     return int(val) if val == int(val) else val

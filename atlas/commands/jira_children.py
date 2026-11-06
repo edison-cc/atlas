@@ -1,13 +1,13 @@
 """atlas jira children <KEY> -- list all child issues recursively."""
 
-from atlas.config import get_story_points_field
+from atlas.config import get_story_points_field, warn_story_points_unconfigured
 
 
 def register(subparser):
     p = subparser.add_parser("children", help="List child issues (recursive)")
     p.add_argument("key", help="Parent issue key (e.g. PROJ-123)")
     p.add_argument("--story-points", action="store_true",
-                    help="Include story points column")
+                    help="Include story points column (requires story_points_field in config)")
     p.add_argument("--depth", type=int, default=2,
                     help="Max recursion depth (default: 2)")
     p.add_argument("--limit", type=int, default=100,
@@ -16,10 +16,12 @@ def register(subparser):
 
 
 def run(args, client):
-    sp_field = get_story_points_field()
-    all_issues = _collect_children(client, [args.key], args.depth, args.limit, sp_field)
-
     show_sp = args.story_points
+    sp_field = get_story_points_field() if show_sp else None
+    if show_sp and not sp_field:
+        warn_story_points_unconfigured()
+        show_sp = False
+    all_issues = _collect_children(client, [args.key], args.depth, args.limit, sp_field)
 
     print(f"## Children of {args.key}: {len(all_issues)} issues")
     print()
@@ -56,7 +58,9 @@ def _collect_children(client, parent_keys, depth, limit, sp_field):
 
     keys_csv = ", ".join(parent_keys)
     jql = f"parent in ({keys_csv}) ORDER BY key ASC"
-    api_fields = f"key,summary,status,assignee,parent,{sp_field}"
+    api_fields = "key,summary,status,assignee,parent"
+    if sp_field:
+        api_fields = f"{api_fields},{sp_field}"
 
     data = client.jira_get("search/jql", params={
         "jql": jql,

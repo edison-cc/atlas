@@ -14,6 +14,7 @@
 - Fields: `atlas jira fields --search "story"` (discover custom field IDs)
 - Create issue: `atlas jira create --project PROJ --type Story --summary "..." --parent PROJ-100 --ac "..."`
 - Update issue: `atlas jira update <KEY> --summary "..." --description "..." --ac "..."`
+- `--ac` and `--story-points` need `acceptance_criteria_field` and `story_points_field` in the atlas config. Discover ids with `atlas jira fields --search`. A Jira search needs a restriction, such as a project clause.
 - Comment: `atlas jira comment <KEY> "comment text"`
 - List transitions: `atlas jira transitions <KEY>`
 - Transition issue: `atlas jira transition <KEY> <TRANSITION_ID>`

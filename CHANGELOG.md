@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Changed
+
+- Story points and acceptance criteria are optional. Set `story_points_field` and `acceptance_criteria_field` after discovering the ids with `atlas jira fields`. Atlas no longer assumes `customfield_10031` or `customfield_10046`.
+
+### Fixed
+
+- `atlas jira get --comments` requests the `comment` field. Jira Cloud does not include comments in `*navigable`.
+
 ## [0.3.0] - 2026-07-09
 
 ### Added
