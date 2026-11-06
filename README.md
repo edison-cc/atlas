@@ -10,31 +10,9 @@ Faster Jira and Confluence for AI coding agents.
 
 In agent workflows, Docker-based MCP servers impose hidden costs: tool schemas that bloat context, verbose JSON output, and container overhead on every call. Atlas CLI eliminates all three. Measurements below were taken against live Atlassian Cloud APIs.
 
-```mermaid
-xychart-beta
-    title "Schema overhead for 73 tools, characters"
-    x-axis ["Docker MCP", "Atlas"]
-    y-axis "characters" 0 --> 120000
-    bar [108867, 901]
-```
+<img src="benchmarks/comparison.svg" alt="Three bar charts side by side. Schema overhead: Docker MCP 108,867 characters, Atlas 901. Output size across 5 operations: Docker MCP 6,421 characters, Atlas 2,597. Median latency: Docker MCP about 5,300 milliseconds, Atlas about 400." width="100%">
 
-Atlas is the short bar: **901** characters against **108,867**.
-
-```mermaid
-xychart-beta
-    title "Output size across 5 operations, characters"
-    x-axis ["Docker MCP", "Atlas"]
-    y-axis "characters" 0 --> 7000
-    bar [6421, 2597]
-```
-
-```mermaid
-xychart-beta
-    title "Median latency per call, milliseconds"
-    x-axis ["Docker MCP ~5300", "Atlas ~400"]
-    y-axis "milliseconds" 0 --> 6000
-    bar [5300, 400]
-```
+Atlas is the short bar on schema overhead: **901** characters against **108,867**.
 
 | Dimension | Docker MCP | Atlas CLI | Improvement | Details |
 |-----------|-----------|-----------|-------------|---------|
