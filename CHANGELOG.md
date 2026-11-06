@@ -6,6 +6,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-05
+
 ### Changed
 
 - Story points and acceptance criteria are optional. Set `story_points_field` and `acceptance_criteria_field` after discovering the ids with `atlas jira fields`. Atlas no longer assumes `customfield_10031` or `customfield_10046`.
