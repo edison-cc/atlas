@@ -1,48 +1,40 @@
 # atlas
 
-Faster Jira and Confluence for AI coding agents.
+Compact Jira and Confluence CLI for terminals and AI coding agents.
 
-- **121x less context** -- one routing rule replaces 73 MCP tool schemas
-- **60% smaller output** -- flat Markdown, not nested JSON
-- **12x faster** -- direct HTTP in ~400 ms vs ~5,300 ms per Docker MCP call
+- Read issues, search projects, and browse Confluence from your terminal.
+- Get compact Markdown output for supported operations.
+- Use the same commands manually or through an agent's shell tool.
 
 ## Why atlas?
 
-In agent workflows, Docker-based MCP servers impose hidden costs: tool schemas that bloat context, verbose JSON output, and container overhead on every call. Atlas CLI eliminates all three. Measurements below were taken against live Atlassian Cloud APIs.
+Atlas calls Atlassian Cloud REST APIs directly from a local Python process. It
+provides a small command surface for common Jira and Confluence workflows, with
+help available at every command level.
 
-<img src="benchmarks/comparison.svg" alt="Three bar charts side by side. Schema overhead: Docker MCP 108,867 characters, Atlas 901. Output size across 5 operations: Docker MCP 6,421 characters, Atlas 2,597. Median latency: Docker MCP about 5,300 milliseconds, Atlas about 400." width="100%">
+### Benchmark status
 
-Atlas is the short bar on schema overhead: **901** characters against **108,867**.
+The March 2026 measurements are **historical observations, not verified performance
+claims for the current release**. The original raw samples and complete environment
+versions are unavailable, and the original timing script did not reject failed
+requests. New measurements must use the validated runner described in
+[benchmarks/README.md](benchmarks/README.md).
 
-| Dimension | Docker MCP | Atlas CLI | Improvement | Details |
-|-----------|-----------|-----------|-------------|---------|
-| Schema overhead (73 tools) | 108,867 chars (~27,216 tokens) | 901 chars (~225 tokens) | **121x smaller** | [benchmarks/SCHEMA.md](benchmarks/SCHEMA.md) |
-| Output size (5-op total) | 6,421 chars (~1,605 tokens) | 2,597 chars (~649 tokens) | **60% smaller** | [benchmarks/OUTPUT.md](benchmarks/OUTPUT.md) |
-| Latency (per call median) | ~5,300 ms | ~400 ms | **12.8x faster** | [benchmarks/LATENCY.md](benchmarks/LATENCY.md) |
+| Historical observation | Recorded values | Interpretation |
+|---|---|---|
+| Output size, five operations | MCP 6,421 vs Atlas 2,597 reported characters | About 60% smaller in that sample; not a measured token reduction |
+| Execution time, five-operation sum of medians | Docker MCP 26,653 ms vs Atlas 2,082 ms | A historical 12.8x ratio for one ephemeral-container setup; not agent end-to-end latency |
 
-> **Scope**: These benchmarks compare Atlas CLI against **Docker MCP** (ephemeral containers). Not all MCP servers use Docker — HTTP and stdio MCP servers run as persistent processes with negligible per-call overhead. For persistent MCP servers, the latency tradeoff can reverse because Cursor's Shell tool sandbox adds ~1.6–2 s per CLI invocation that `CallMcpTool` avoids. Atlas CLI still wins on schema overhead and output size regardless of MCP transport. See [benchmarks/LATENCY.md — Scope and Limitations](benchmarks/LATENCY.md#scope-and-limitations) for details.
+The old raw API totals give an arithmetic reduction of about 94%, not 96%, but
+raw baselines are missing for two operations, so this is not a matched-workload
+comparison and is not retained as a headline.
 
-### See the difference
-
-The same issue fetched through Docker MCP vs Atlas CLI — full comparison with raw API output (27,788 chars for the same issue) in [benchmarks/OUTPUT.md](benchmarks/OUTPUT.md).
-
-### Schema overhead -- 121x reduction
-
-Enabling Docker MCP injects ~1,500 tokens of infrastructure (wrapper tools, server metadata, usage instructions) into **every turn**, whether or not you call an Atlassian tool. On top of that, each new MCP tool call triggers a schema read (~370 tokens on average) that **stays in conversation history** for all subsequent turns.
-
-Atlas CLI replaces 73 Atlassian tool schemas (108,867 chars) with a single 901-char routing rule -- a **121x reduction**. Over a 20-turn session with 10 Atlassian calls, this saves ~47,000 tokens of context. Details in [benchmarks/SCHEMA.md](benchmarks/SCHEMA.md).
-
-### Output size -- 60% fewer tokens
-
-Docker MCP returns nested JSON containing avatar URLs, null custom fields, status metadata, and ADF document trees. Atlas emits flat Markdown with only the fields the model needs.
-
-Across 5 representative operations, Atlas produces **2,597 chars (~649 tokens)** vs Docker MCP's **6,421 chars (~1,605 tokens)** -- a **60% reduction**. Compared to the raw Atlassian API (41,567 chars), the savings reach **96%**. Details in [benchmarks/OUTPUT.md](benchmarks/OUTPUT.md).
-
-### Execution latency -- 12x faster
-
-Docker MCP creates an ephemeral container for every tool call, adding ~4,500 ms of container lifecycle overhead (create, start, teardown). Atlas runs as a local subprocess that starts in ~80 ms and makes a direct HTTP request.
-
-Median per-call latency drops from **~5,300 ms to ~400 ms** -- a **12.8x speedup**. Over a 10-call session, that is **~49 seconds saved** in pure execution time. Details in [benchmarks/LATENCY.md](benchmarks/LATENCY.md).
+The former “121x less context” headline compared 73 complete MCP schemas with a
+routing rule describing 12 operations. It does not measure equivalent functionality
+or actual agent context consumption. See [schema methodology](benchmarks/SCHEMA.md),
+[historical output data](benchmarks/OUTPUT.md), and
+[latency methodology](benchmarks/LATENCY.md) for limitations. Smaller output also
+needs a content-preservation check; byte counts alone do not establish usefulness.
 
 ## Quick Start
 
@@ -61,9 +53,9 @@ uv downloads a Python 3.10+ for the tool, so a separate Python install is not re
 uv tool install atlassian-atlas
 ```
 
-Close and reopen your terminal if `atlas` is not found. The command is installed to `~/.local/bin`.
+If `atlas` is not found, run `uv tool update-shell`, then restart your terminal.
 
-To try it without installing: `uvx atlassian-atlas --help`
+To try it without installing: `uvx --from atlassian-atlas atlas --help`
 
 Without uv, use pipx: `pipx install atlassian-atlas`
 
@@ -83,7 +75,9 @@ Or clone and install into the current environment:
 ```bash
 git clone https://github.com/edison-cc/atlas.git
 cd atlas
+uv venv
 uv pip install .
+uv run atlas --help
 ```
 
 Without uv, use `pip install .` in a virtual environment. That path needs Python 3.10+.
@@ -92,7 +86,9 @@ Without uv, use `pip install .` in a virtual environment. That path needs Python
 
 ### 2. Configure Atlassian credentials
 
-Create `~/.config/atlas/config.json`:
+On macOS/Linux, create the directory with `mkdir -p ~/.config/atlas`.
+On PowerShell, use `New-Item -ItemType Directory -Force "$HOME/.config/atlas"`.
+Then create `~/.config/atlas/config.json`:
 
 ```json
 {
@@ -113,6 +109,18 @@ Generate a token at https://id.atlassian.com/manage-profile/security/api-tokens
 > Jira and Confluence must both be on this site. Atlas calls Jira at `/rest/api/3` and Confluence at `/wiki/rest/api` on `atlassian_base_url`.
 >
 > **Story points or acceptance criteria?** Field ids differ by site, and a blank value leaves the feature off. Discover them with `atlas jira fields --search "story"` or `atlas jira fields --search "acceptance"`, then set `story_points_field` and `acceptance_criteria_field`. Until then, `--story-points` is skipped and `--ac` exits with an error.
+
+### 3. Try a read-only operation
+
+Replace `PROJ-123` with an issue you can access:
+
+```bash
+atlas jira get PROJ-123
+```
+
+A successful response contains the issue key, summary, and Markdown details. For
+Confluence, use `atlas conf get <PAGE-ID> --format storage` when you need the
+original storage markup; the default readable conversion is best-effort.
 
 ### Upgrade
 
@@ -142,7 +150,7 @@ Atlas is a shell command. An agent that can run a terminal can use it. Put the i
 
 Use the `atlas` CLI for every Jira and Confluence operation. Do not call an Atlassian MCP server.
 
-Discover flags with `atlas jira --help` and `atlas conf --help`. A Jira search needs a restriction, such as a project clause. `--ac` and `--story-points` need `acceptance_criteria_field` and `story_points_field` in the atlas config. Discover the ids with `atlas jira fields --search`.
+Discover commands with `atlas jira --help` and `atlas conf --help`, then inspect flags with subcommand help such as `atlas jira get --help`. A Jira search needs a restriction, such as a project clause. `--ac` and `--story-points` need `acceptance_criteria_field` and `story_points_field` in the atlas config. Discover the ids with `atlas jira fields --search "story"` or `atlas jira fields --search "acceptance"`.
 ```
 
 Some agents look for their own file first:

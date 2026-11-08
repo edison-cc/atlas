@@ -1,29 +1,12 @@
 #!/usr/bin/env python3
-"""Latency benchmark: Atlas CLI vs Docker MCP.
-
-Measures wall-clock time for 5 Atlassian operations through both
-Atlas CLI (subprocess) and Docker MCP (JSON-RPC over stdio gateway).
-
-CLI timing uses subprocess.run() directly, which captures process startup
-(~80 ms) and API call latency but does NOT include Cursor's Shell tool
-sandbox overhead (~1.6-2.0 s per invocation). In real agent usage, CLI
-commands go through the Shell tool sandbox, so actual per-call latency
-is ~2 s higher than what this benchmark reports. MCP's CallMcpTool
-bypasses the Shell sandbox, so MCP timings here match real agent usage.
-
-This benchmark targets Docker MCP (ephemeral containers). HTTP and stdio
-MCP servers have different overhead profiles — see LATENCY.md
-"Scope and Limitations" for details.
-
-Usage:
-    python benchmark_latency.py              # run both CLI and MCP
-    python benchmark_latency.py --cli-only   # run CLI only
-    python benchmark_latency.py --runs 10    # 10 iterations per operation
-"""
-
+"""Validated, interleaved CLI/Docker MCP timing. See benchmarks/README.md."""
 import argparse
+from datetime import datetime, timezone
+import hashlib
 import json
-import os
+import math
+import platform
+from pathlib import Path
 import queue
 import statistics
 import subprocess
@@ -31,108 +14,34 @@ import sys
 import threading
 import time
 
-OPERATIONS = [
-    {
-        "name": "Jira Get Issue",
-        "cli": ["atlas", "jira", "get", "PROJ-123"],
-        "mcp_tool": "jira_get_issue",
-        "mcp_args": {"issue_key": "PROJ-123"},
-        "schema_file": "jira_get_issue.json",
-    },
-    {
-        "name": "Jira Search (5 issues)",
-        "cli": ["atlas", "jira", "search", "updated >= -7d", "--limit", "5"],
-        "mcp_tool": "jira_search",
-        "mcp_args": {"jql": "updated >= -7d", "limit": 5},
-        "schema_file": "jira_search.json",
-    },
-    {
-        "name": "Jira Transitions",
-        "cli": ["atlas", "jira", "transitions", "PROJ-123"],
-        "mcp_tool": "jira_get_transitions",
-        "mcp_args": {"issue_key": "PROJ-123"},
-        "schema_file": "jira_get_transitions.json",
-    },
-    {
-        "name": "Confluence Get Page",
-        "cli": ["atlas", "conf", "get", "987923264"],
-        "mcp_tool": "confluence_get_page",
-        "mcp_args": {"page_id": "987923264"},
-        "schema_file": "confluence_get_page.json",
-    },
-    {
-        "name": "Confluence Search",
-        "cli": ["atlas", "conf", "search", "design", "--limit", "5"],
-        "mcp_tool": "confluence_search",
-        "mcp_args": {"query": "design", "limit": 5},
-        "schema_file": "confluence_search.json",
-    },
-]
-
-
-def find_schema_dir():
-    """Locate the MCP tool descriptor directory."""
-    candidates = []
-    import glob
-
-    for pattern in glob.glob(
-        os.path.expanduser("~/.cursor/projects/*/mcps/user-MCP_DOCKER/tools")
-    ):
-        candidates.append(pattern)
-    for d in candidates:
-        if os.path.isdir(d):
-            return d
-    return None
-
-
-# ---------------------------------------------------------------------------
-# Atlas CLI timing
-# ---------------------------------------------------------------------------
-
-
-def time_cli(cmd, runs):
-    """Time an atlas CLI command, return list of elapsed ms."""
-    times = []
-    for _ in range(runs):
-        start = time.perf_counter()
-        subprocess.run(cmd, capture_output=True, text=True)
-        times.append((time.perf_counter() - start) * 1000)
-    return times
-
-
-# ---------------------------------------------------------------------------
-# MCP gateway (JSON-RPC over stdio)
-# ---------------------------------------------------------------------------
-
 
 class McpGateway:
     """Communicates with `docker mcp gateway run` over stdio."""
 
-    def __init__(self, timeout=30):
+    def __init__(self, command, timeout=60):
         self._msg_id = 0
         self._responses: queue.Queue = queue.Queue()
         self._timeout = timeout
 
         self.proc = subprocess.Popen(
-            ["docker", "mcp", "gateway", "run"],
+            command,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
         )
 
         self._reader_thread = threading.Thread(target=self._read_loop, daemon=True)
         self._reader_thread.start()
 
-        # MCP handshake
-        self.request(
-            "initialize",
-            {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {},
-                "clientInfo": {"name": "benchmark", "version": "1.0"},
-            },
-        )
-        self._notify("notifications/initialized", {})
+        try:
+            self.request("initialize", {
+                "protocolVersion": "2024-11-05", "capabilities": {},
+                "clientInfo": {"name": "atlas-benchmark", "version": "2"},
+            })
+            self._notify("notifications/initialized", {})
+        except Exception:
+            self.close()
+            raise
 
     # -- I/O plumbing -------------------------------------------------------
 
@@ -155,7 +64,7 @@ class McpGateway:
                     # consume the blank line after the header
                     while True:
                         hdr = self.proc.stdout.readline()
-                        if hdr.strip() == b"":
+                        if not hdr or hdr.strip() == b"":
                             break
                     body = self.proc.stdout.read(length)
                     self._handle_message(body)
@@ -197,6 +106,8 @@ class McpGateway:
             if resp.get("id") == msg_id:
                 for s in stash:
                     self._responses.put(s)
+                if "error" in resp:
+                    raise RuntimeError(f"MCP {method} returned a JSON-RPC error")
                 return resp
             stash.append(resp)
         for s in stash:
@@ -219,165 +130,152 @@ class McpGateway:
             self.proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             self.proc.kill()
+            self.proc.wait(timeout=5)
 
 
-def time_mcp(gateway, tool_name, arguments, runs):
-    """Time an MCP tool call through the running gateway."""
-    times = []
-    for _ in range(runs):
-        start = time.perf_counter()
-        gateway.call_tool(tool_name, arguments)
-        times.append((time.perf_counter() - start) * 1000)
-    return times
+def validate_text(text, expected):
+    if not text.strip() or any(value not in text for value in expected):
+        raise ValueError("Empty output or missing expected content; sample rejected")
 
 
-# ---------------------------------------------------------------------------
-# Schema read overhead
-# ---------------------------------------------------------------------------
+def run_cli(command, expected):
+    start = time.perf_counter()
+    result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", timeout=60)
+    elapsed = (time.perf_counter() - start) * 1000
+    if result.returncode:
+        raise RuntimeError(f"CLI exited with status {result.returncode}; sample rejected")
+    validate_text(result.stdout, expected)
+    return elapsed, result.stdout
 
 
-def time_schema_reads(schema_dir, runs):
-    """Time reading each MCP schema JSON file from disk."""
-    results = {}
-    for op in OPERATIONS:
-        path = os.path.join(schema_dir, op["schema_file"])
-        if not os.path.exists(path):
-            continue
-        times = []
-        for _ in range(runs):
-            start = time.perf_counter()
-            with open(path) as f:
-                f.read()
-            times.append((time.perf_counter() - start) * 1000)
-        results[op["schema_file"]] = {"times": times, "size": os.path.getsize(path)}
-    return results
-
-
-# ---------------------------------------------------------------------------
-# Reporting
-# ---------------------------------------------------------------------------
+def run_mcp(gateway, name, arguments, expected):
+    start = time.perf_counter()
+    response = gateway.call_tool(name, arguments)
+    elapsed = (time.perf_counter() - start) * 1000
+    if "error" in response or not isinstance(response.get("result"), dict):
+        raise RuntimeError("MCP returned an error or missing result; sample rejected")
+    result = response["result"]
+    if result.get("isError"):
+        raise RuntimeError("MCP tool returned isError; sample rejected")
+    text = "\n".join(item.get("text", "") for item in result.get("content", [])
+                     if item.get("type") == "text")
+    if not text and "structuredContent" in result:
+        text = json.dumps(result["structuredContent"], ensure_ascii=False)
+    validate_text(text, expected)
+    return elapsed, text
 
 
 def fmt_stats(times):
-    return {
-        "median": statistics.median(times),
-        "mean": statistics.mean(times),
-        "min": min(times),
-        "max": max(times),
-    }
+    return {"n": len(times), "median_ms": statistics.median(times),
+            "p95_ms": sorted(times)[math.ceil(len(times) * .95) - 1],
+            "min_ms": min(times), "max_ms": max(times)}
 
 
-def print_section(title, rows, cols):
-    """Print a markdown table."""
-    print(f"\n## {title}\n")
-    print("| " + " | ".join(cols) + " |")
-    print("| " + " | ".join("---" for _ in cols) + " |")
-    for row in rows:
-        print("| " + " | ".join(str(c) for c in row) + " |")
+def load_cases(path):
+    cases = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(cases, list) or not cases:
+        raise ValueError("Cases must be a nonempty JSON list")
+    names = set()
+    for case in cases:
+        name = case.get("name")
+        if not isinstance(name, str) or not name or name in names:
+            raise ValueError("Case names must be nonempty and unique")
+        names.add(name)
+        for key in ("cli", "expect_cli", "expect_mcp"):
+            if not isinstance(case.get(key), list) or not case[key] or not all(
+                isinstance(value, str) and value.strip() for value in case[key]
+            ):
+                raise ValueError(f"{name}: {key} must contain nonempty strings")
+        if not isinstance(case.get("mcp_tool"), str) or not case["mcp_tool"] or not isinstance(case.get("mcp_args"), dict):
+            raise ValueError(f"{name}: specify mcp_tool and mcp_args")
+    return cases
+
+
+def command_version(command):
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=15)
+        return result.stdout.strip() if result.returncode == 0 else "unavailable"
+    except (OSError, subprocess.TimeoutExpired):
+        return "unavailable"
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Latency benchmark")
-    parser.add_argument("--runs", type=int, default=5, help="Iterations per operation")
-    parser.add_argument(
-        "--cli-only", action="store_true", help="Skip Docker MCP measurement"
-    )
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--cases", required=True, help="Reviewed JSON cases; see cases.example.json")
+    parser.add_argument("--runs", type=int, default=30)
+    parser.add_argument("--warmup", type=int, default=2)
+    parser.add_argument("--cli-only", action="store_true")
+    parser.add_argument("--server", help="Docker MCP server identifier")
+    parser.add_argument("--server-version", help="Server version or image digest for provenance")
+    parser.add_argument("--mode", choices=["ephemeral", "persistent"], default="ephemeral")
+    parser.add_argument("--atlas", default="atlas", help="Atlas executable")
+    parser.add_argument("--output", required=True, help="New JSON result file (will not overwrite)")
     args = parser.parse_args()
-
-    runs = args.runs
-    print(f"# Latency Benchmark Results\n")
-    print(f"Date: {time.strftime('%Y-%m-%d')}")
-    print(f"Runs per operation: {runs}\n")
-
-    # ---- Atlas CLI --------------------------------------------------------
-    print("## Atlas CLI Execution Latency\n")
-    print("| Operation | Median (ms) | Mean (ms) | Min (ms) | Max (ms) |")
-    print("| --- | --- | --- | --- | --- |")
-    cli_results = {}
-    for op in OPERATIONS:
-        print(f"  timing {op['name']}...", end="", file=sys.stderr, flush=True)
-        times = time_cli(op["cli"], runs)
-        s = fmt_stats(times)
-        cli_results[op["name"]] = s
-        print(
-            f"| {op['name']} | {s['median']:.0f} | {s['mean']:.0f}"
-            f" | {s['min']:.0f} | {s['max']:.0f} |"
-        )
-        print(f" {s['median']:.0f} ms", file=sys.stderr)
-
-    # ---- Docker MCP -------------------------------------------------------
-    mcp_results = None
-    if not args.cli_only:
-        print("\n## Docker MCP Execution Latency\n")
+    if args.runs < 1 or args.warmup < 0:
+        parser.error("runs must be positive; warmup must be nonnegative")
+    if not args.cli_only and (not args.server or not args.server_version):
+        parser.error("MCP comparison requires --server and --server-version")
+    try:
+        cases = load_cases(args.cases)
+    except (OSError, ValueError) as exc:
+        parser.error(str(exc))
+    command = ["docker", "mcp", "gateway", "run", "--servers", args.server or ""]
+    if args.mode == "persistent":
+        command.append("--long-lived")
+    report = {"status": "running", "started_at": datetime.now(timezone.utc).isoformat(),
+              "environment": {"platform": platform.platform(), "python": platform.python_version(),
+                              "atlas": command_version([args.atlas, "--version"]),
+                              "docker": command_version(["docker", "--version"]) if not args.cli_only else None,
+                              "server_version": args.server_version,
+                              "gateway_command": command if not args.cli_only else None},
+              "runs": args.runs, "warmup": args.warmup, "cases": cases,
+              "samples": [], "summary": []}
+    gateway = None
+    # Reserve output before starting any requests; failed runs preserve partial samples.
+    with open(args.output, "x", encoding="utf-8") as output:
         try:
-            print("Starting MCP gateway...", file=sys.stderr, flush=True)
-            gateway = McpGateway(timeout=60)
-            print("Gateway ready.\n", file=sys.stderr, flush=True)
-
-            print("| Operation | Median (ms) | Mean (ms) | Min (ms) | Max (ms) |")
-            print("| --- | --- | --- | --- | --- |")
-            mcp_results = {}
-            for op in OPERATIONS:
-                print(
-                    f"  timing {op['name']}...", end="", file=sys.stderr, flush=True
-                )
-                times = time_mcp(gateway, op["mcp_tool"], op["mcp_args"], runs)
-                s = fmt_stats(times)
-                mcp_results[op["name"]] = s
-                print(
-                    f"| {op['name']} | {s['median']:.0f} | {s['mean']:.0f}"
-                    f" | {s['min']:.0f} | {s['max']:.0f} |"
-                )
-                print(f" {s['median']:.0f} ms", file=sys.stderr)
-
-            gateway.close()
-        except Exception as e:
-            print(f"\nMCP gateway error: {e}", file=sys.stderr)
-            print(
-                "Run with --cli-only or fix Docker MCP setup.", file=sys.stderr
-            )
-
-    # ---- Schema read overhead ---------------------------------------------
-    schema_dir = find_schema_dir()
-    if schema_dir:
-        print("\n## MCP Schema Read Overhead\n")
-        schema_results = time_schema_reads(schema_dir, runs)
-        print("| Schema file | Median (ms) | Size (chars) |")
-        print("| --- | --- | --- |")
-        for fname, data in schema_results.items():
-            s = fmt_stats(data["times"])
-            print(f"| {fname} | {s['median']:.3f} | {data['size']} |")
-
-    # ---- Side-by-side comparison ------------------------------------------
-    if mcp_results:
-        print("\n## Comparison (median latency)\n")
-        print(
-            "| Operation | Atlas CLI (ms) | Docker MCP (ms)"
-            " | Difference (ms) | CLI faster by |"
-        )
-        print("| --- | --- | --- | --- | --- |")
-        total_cli = 0
-        total_mcp = 0
-        for op in OPERATIONS:
-            name = op["name"]
-            cli_ms = cli_results[name]["median"]
-            mcp_ms = mcp_results[name]["median"]
-            diff = mcp_ms - cli_ms
-            pct = (diff / mcp_ms * 100) if mcp_ms else 0
-            total_cli += cli_ms
-            total_mcp += mcp_ms
-            print(
-                f"| {name} | {cli_ms:.0f} | {mcp_ms:.0f}"
-                f" | {diff:+.0f} | {pct:.0f}% |"
-            )
-        diff_total = total_mcp - total_cli
-        pct_total = (diff_total / total_mcp * 100) if total_mcp else 0
-        print(
-            f"| **Total (5 ops)** | **{total_cli:.0f}**"
-            f" | **{total_mcp:.0f}** | **{diff_total:+.0f}**"
-            f" | **{pct_total:.0f}%** |"
-        )
+            if not args.cli_only:
+                gateway = McpGateway(command)
+            for case in cases:
+                print(f"Measuring {case['name']}...", file=sys.stderr, flush=True)
+                methods = ["cli"] if args.cli_only else ["cli", "mcp"]
+                for index in range(args.warmup + args.runs):
+                    phase = "warmup" if index < args.warmup else "measured"
+                    for method in methods[::1 if index % 2 == 0 else -1]:
+                        if method == "cli":
+                            elapsed, text = run_cli([args.atlas, *case["cli"]], case["expect_cli"])
+                        else:
+                            elapsed, text = run_mcp(gateway, case["mcp_tool"], case["mcp_args"], case["expect_mcp"])
+                        report["samples"].append({"case": case["name"], "method": method,
+                            "phase": phase, "iteration": index, "elapsed_ms": elapsed,
+                            "chars": len(text), "utf8_bytes": len(text.encode("utf-8")),
+                            "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest()})
+            for case in cases:
+                for method in methods:
+                    times = [s["elapsed_ms"] for s in report["samples"] if s["case"] == case["name"]
+                             and s["method"] == method and s["phase"] == "measured"]
+                    report["summary"].append({"case": case["name"], "method": method, **fmt_stats(times)})
+            report["status"] = "complete"
+        except Exception as exc:
+            report["status"] = "failed"
+            # Avoid persisting API response bodies or subprocess output containing private data.
+            report["failure_type"] = type(exc).__name__
+            report["failed_case"] = case["name"] if "case" in locals() else None
+            report["failed_method"] = method if "method" in locals() else "gateway"
+            print(f"Benchmark failed ({type(exc).__name__}); no valid comparison produced.", file=sys.stderr)
+        finally:
+            if gateway:
+                gateway.close()
+            json.dump(report, output, indent=2, ensure_ascii=False)
+            output.write("\n")
+    if report["status"] != "complete":
+        return 1
+    print("| Operation | Method | N | Median ms | p95 ms |")
+    print("| --- | --- | --- | --- | --- |")
+    for row in report["summary"]:
+        print(f"| {row['case']} | {row['method']} | {row['n']} | {row['median_ms']:.1f} | {row['p95_ms']:.1f} |")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

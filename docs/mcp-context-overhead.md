@@ -1,5 +1,10 @@
 # How MCP Works and Why It Bloats Context
 
+> Historical design notes: numerical estimates and editor behavior below were not
+> validated in the launch review. They are not current benchmark claims. Use the
+> [benchmark protocol](../benchmarks/README.md) and
+> [context methodology](../benchmarks/SCHEMA.md) for replacement measurements.
+
 MCP (Model Context Protocol) connects external tool servers to LLMs in agent workflows. This document explains how MCP tools are loaded into context, how different IDEs have evolved their loading strategies, and when CLI-based alternatives win.
 
 ## How MCP works in agent IDEs

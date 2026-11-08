@@ -8,13 +8,25 @@ Measured on 2026-03-13 against live Jira Cloud and Confluence Cloud APIs (your-s
 > will give slightly lower numbers (roughly 5-8% for the single-issue examples). The relative
 > reductions and the comparison between layers are unaffected.
 
+## Measurement status
+
+These are historical reported counts, not independently reproduced results for the
+current release. Original payloads are unavailable; the examples below are
+illustrative. The old methodology conflated bytes and characters and estimated
+tokens as characters / 4. No tokenizer-based token saving was measured.
+The recorded totals give **93.75% (about 94%)**, not 96%, arithmetically.
+However, raw API baselines are absent for transitions and Confluence get, so this
+is not a matched-workload reduction. No validated raw API saving is claimed.
+See [the new protocol](README.md) before publishing replacement results.
+
 ## Summary
 
-Atlas CLI reduces context consumed by Atlassian operations by **60% vs Docker MCP** and **96% vs raw API**.
+The historical MCP/Atlas totals imply about 60% fewer reported characters.
+They do not establish an actual token or session-context reduction.
 
-This document measures **per-call output size** (how much each tool result adds to the conversation). For **schema loading cost** (MCP infrastructure overhead per turn + on-demand schema reads that accumulate in conversation history), see [BENCHMARKS-SCHEMA.md](BENCHMARKS-SCHEMA.md). For **execution latency**, see [BENCHMARKS-LATENCY.md](BENCHMARKS-LATENCY.md).
+This document measures **per-call output size** (how much each tool result adds to the conversation). For **schema loading cost** (MCP infrastructure overhead per turn + on-demand schema reads that accumulate in conversation history), see [SCHEMA.md](SCHEMA.md). For **execution latency**, see [LATENCY.md](LATENCY.md).
 
-| Layer | 5-operation total | Tokens (approx) | vs Atlas |
+| Layer | Reported total | Tokens (approx) | vs Atlas |
 |-------|-------------------|------------------|----------|
 | Raw Atlassian API | 41,567 chars | ~10,391 | 16x larger |
 | Docker MCP | 6,421 chars | ~1,605 | 2.5x larger |
@@ -251,47 +263,13 @@ Why the difference:
 - Atlas CLI returns a Markdown table: `| Title (ID) | Space | Type | Updated |`
 - Per-result overhead: Docker MCP ~440 chars/result, Atlas ~80 chars/result
 
-## Scaling Impact
+## Reproducing replacement results
 
-In a typical AI-assisted work session, you might make 10-20 Atlassian API calls. At the measured rates:
+The original measurements cannot be reconstructed from the placeholder examples.
+Use [the benchmark protocol](README.md) and `benchmark_output.py` with saved,
+reviewed outputs for the same resources, fields, and result limits. Keep these
+historical tables separate from new results.
 
-| Scenario | Docker MCP tokens | Atlas CLI tokens | Saved |
-|----------|-------------------|------------------|-------|
-| 5 calls (light session) | ~1,605 | ~649 | ~956 (60%) |
-| 10 calls (normal session) | ~3,210 | ~1,298 | ~1,912 (60%) |
-| 20 calls (heavy session) | ~6,420 | ~2,596 | ~3,824 (60%) |
-
-With typical context windows of 128K-200K tokens, the Docker MCP overhead from a heavy session consumes ~3-5% of context just from Atlassian metadata noise (avatar URLs, color codes, category labels, empty arrays). Atlas eliminates this entirely.
-
-## How to Reproduce
-
-```bash
-# Atlas CLI (compact Markdown)
-atlas jira get PROJ-123
-atlas jira search "updated >= -7d" --limit 5
-atlas jira transitions PROJ-123
-atlas conf get 987923264
-atlas conf search "design" --limit 5
-
-# Docker MCP (via Cursor MCP tools)
-# Use jira_get_issue, jira_search, jira_get_transitions,
-# confluence_get_page, confluence_search with the same parameters
-```
-
-## Methodology
-
-- **Chars**: byte length of the tool output that enters the model context
-- **Tokens**: approximate, using 1 token ~ 4 characters (conservative estimate for mixed English/JSON)
-- **Raw API**: full response from Atlassian REST API v3 with no filtering
-- **Docker MCP**: response after Docker MCP server's built-in filtering/formatting
-- **Atlas CLI**: compact Markdown output from atlas CLI
-
-## What actually enters the LLM context window
-
-The example outputs shown above are the real payloads that enter the model's context, with one caveat per source:
-
-- **Docker MCP**: The JSON output from `CallMcpTool` is injected directly into the conversation as the tool result. What you see in the example is exactly what the model receives.
-- **Atlas CLI**: The Markdown output is wrapped in a small Shell tool envelope (~40 chars of fixed overhead: `Exit code: 0\n\nCommand output:\n\n...`). This wrapper is the same regardless of response size, so it doesn't meaningfully affect the percentage reduction.
-- **Raw API**: This is a reference point only. Raw API responses are never sent directly to the model. Both Docker MCP and Atlas CLI call the same raw API internally, then filter/format the response before it reaches the context. The raw API column shows how much data arrives over the wire before any filtering occurs.
-
-Both Docker MCP and Atlas CLI also have the tool *call* itself in context (tool name + arguments for MCP, command string for Shell). These are roughly similar in size between the two approaches and are not included in the measurements.
+Output sizes exclude invocation arguments, schema/help discovery, and agent tool
+envelopes. They therefore do not establish total session context savings. Raw API
+responses are a reference baseline; they are not normally sent directly to an agent.
