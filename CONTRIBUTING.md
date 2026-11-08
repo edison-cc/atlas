@@ -3,6 +3,7 @@
 ## Setup
 
 ```bash
+uv venv
 uv pip install -e .
 ```
 
@@ -14,9 +15,12 @@ Configuration lives in `~/.config/atlas/config.json` or in `ATLASSIAN_EMAIL`, `A
 python tests/test_conf_publish.py
 python tests/test_config.py
 python tests/test_jira_get.py
+python tests/test_benchmarks.py
 ```
 
-These scripts run without pytest. The same commands run in CI on Python 3.10–3.13.
+These scripts run without pytest. The same commands run in CI on Python 3.10–3.13, followed by installation and CLI help smoke checks.
+
+For performance measurements, follow [the benchmark protocol](benchmarks/README.md).
 
 ## Adding a command
 

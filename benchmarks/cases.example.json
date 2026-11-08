@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Jira issue details",
+    "cli": ["jira", "get", "REPLACE-123"],
+    "mcp_tool": "jira_get_issue",
+    "mcp_args": {"issue_key": "REPLACE-123"},
+    "expect_cli": ["REPLACE-123", "REPLACE_WITH_KNOWN_SUMMARY"],
+    "expect_mcp": ["REPLACE-123", "REPLACE_WITH_KNOWN_SUMMARY"]
+  },
+  {
+    "name": "Confluence page",
+    "cli": ["conf", "get", "REPLACE_PAGE_ID"],
+    "mcp_tool": "confluence_get_page",
+    "mcp_args": {"page_id": "REPLACE_PAGE_ID"},
+    "expect_cli": ["REPLACE_WITH_KNOWN_TITLE", "REPLACE_WITH_REQUIRED_BODY_TEXT"],
+    "expect_mcp": ["REPLACE_WITH_KNOWN_TITLE", "REPLACE_WITH_REQUIRED_BODY_TEXT"]
+  }
+]
