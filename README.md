@@ -12,18 +12,28 @@ Atlas calls Atlassian Cloud REST APIs directly from a local Python process. It
 provides a small command surface for common Jira and Confluence workflows, with
 help available at every command level.
 
-### Benchmark status
+### Benchmark snapshot
 
-The March 2026 measurements are **historical observations, not verified performance
-claims for the current release**. The original raw samples and complete environment
-versions are unavailable, and the original timing script did not reject failed
-requests. New measurements must use the validated runner described in
-[benchmarks/README.md](benchmarks/README.md).
+[![Historical March 2026 comparison: reported output totals of 6,421 vs 2,597 characters (59.6% smaller), and sums of per-operation median execution times of 26,653 vs 2,082 ms (12.8× ratio). Unverified historical results; original samples unavailable.](benchmarks/comparison.svg)](benchmarks/README.md)
 
-| Historical observation | Recorded values | Interpretation |
-|---|---|---|
-| Output size, five operations | MCP 6,421 vs Atlas 2,597 reported characters | About 60% smaller in that sample; not a measured token reduction |
-| Execution time, five-operation sum of medians | Docker MCP 26,653 ms vs Atlas 2,082 ms | A historical 12.8x ratio for one ephemeral-container setup; not agent end-to-end latency |
+These **historical March 2026 observations** compare one five-operation workload
+against an ephemeral Docker MCP setup. They are not verified current-release
+results or end-to-end agent timings. Output is measured in reported characters,
+not actual tokens.
+
+[Output details](benchmarks/OUTPUT.md) · [Latency details](benchmarks/LATENCY.md) ·
+[Reproduce new measurements](benchmarks/README.md)
+
+<details>
+<summary>Measurement limits and previous claims</summary>
+
+The original raw samples and complete environment versions are unavailable, and
+the original timing script did not reject failed requests. New measurements must
+use the validated runner described in [the benchmark protocol](benchmarks/README.md).
+The displayed ratio uses the original reported totals; the rounded latency rows
+sum to slightly different values, as explained in [the latency notes](benchmarks/LATENCY.md).
+Smaller output also needs a content-preservation check; byte counts alone do not
+establish usefulness.
 
 The old raw API totals give an arithmetic reduction of about 94%, not 96%, but
 raw baselines are missing for two operations, so this is not a matched-workload
@@ -31,10 +41,9 @@ comparison and is not retained as a headline.
 
 The former “121x less context” headline compared 73 complete MCP schemas with a
 routing rule describing 12 operations. It does not measure equivalent functionality
-or actual agent context consumption. See [schema methodology](benchmarks/SCHEMA.md),
-[historical output data](benchmarks/OUTPUT.md), and
-[latency methodology](benchmarks/LATENCY.md) for limitations. Smaller output also
-needs a content-preservation check; byte counts alone do not establish usefulness.
+or actual agent context consumption. See [schema methodology](benchmarks/SCHEMA.md).
+
+</details>
 
 ## Quick Start
 
