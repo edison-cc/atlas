@@ -4,6 +4,7 @@ import json
 
 from atlas.adf import markdown_to_adf
 from atlas.config import require_acceptance_criteria_field
+from atlas.output import print_json
 
 
 def register(subparser):
@@ -18,6 +19,7 @@ def register(subparser):
     p.add_argument("--labels", help="Comma-separated labels")
     p.add_argument("--ac", help="Markdown acceptance criteria (requires acceptance_criteria_field in config)")
     p.add_argument("--fields", help="Additional fields as JSON object")
+    p.add_argument("--json", action="store_true", help="Output the result as JSON")
     p.set_defaults(func=run)
 
 
@@ -49,5 +51,8 @@ def run(args, client):
 
     data = client.jira_post("issue", json_body={"fields": fields})
 
-    key = data.get("key", "unknown")
-    print(f"Created {key}")
+    if args.json:
+        print_json(operation="jira.create", key=data.get("key"), id=data.get("id"))
+    else:
+        key = data.get("key", "unknown")
+        print(f"Created {key}")

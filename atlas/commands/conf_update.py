@@ -3,6 +3,7 @@
 import sys
 
 from atlas.commands.conf_publish import _markdown_to_storage
+from atlas.output import print_json
 
 
 def register(subparser):
@@ -12,6 +13,7 @@ def register(subparser):
     p.add_argument("--body", help="New page body in Markdown (converted to storage format; use --raw to skip). Read from stdin if '-'")
     p.add_argument("--raw", action="store_true", help="Body is already Confluence storage-format XHTML; skip markdown conversion")
     p.add_argument("--minor", action="store_true", help="Mark as minor edit")
+    p.add_argument("--json", action="store_true", help="Output the result as JSON")
     p.set_defaults(func=run)
 
 
@@ -45,4 +47,7 @@ def run(args, client):
     }
 
     client.confluence_put(f"content/{args.page_id}", json_body=payload)
-    print(f"Updated page {args.page_id}: {title}")
+    if args.json:
+        print_json(operation="conf.update", id=args.page_id, title=title, version=version + 1)
+    else:
+        print(f"Updated page {args.page_id}: {title}")

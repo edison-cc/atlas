@@ -1,4 +1,4 @@
-"""Shared JSON output for Atlas read commands."""
+"""Shared JSON output for Atlas commands."""
 
 import json
 

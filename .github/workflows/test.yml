@@ -22,6 +22,7 @@ jobs:
       - run: python tests/test_request_errors.py
       - run: python tests/test_jira_get.py
       - run: python tests/test_read_fidelity.py
+      - run: python tests/test_write_output.py
       - run: python tests/test_benchmarks.py
       - run: atlas --version
       - run: atlas jira --help

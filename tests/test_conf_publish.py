@@ -145,7 +145,7 @@ _CONFIG = {
 def _publish_input(directory, content):
     path = Path(directory) / "design.md"
     path.write_text(content, encoding="utf-8")
-    return Namespace(input_file=path, page_id="123", title="Design", minor=False, dry_run=False)
+    return Namespace(input_file=path, page_id="123", title="Design", minor=False, dry_run=False, json=False)
 
 
 def test_second_render_failure_aborts_before_any_api_call():
@@ -184,12 +184,15 @@ def test_dry_run_uses_real_cli_path_without_credentials():
     with TemporaryDirectory() as directory:
         args = _publish_input(directory, f"# Design\n\n{_DIAGRAM}\n\n{_DIAGRAM}")
         argv = ["atlas", "conf", "publish", "123", str(args.input_file), "--title", "Design", "--dry-run"]
-        with patch.object(sys, "argv", argv), patch.object(cli, "load_config") as config, \
+        with patch.object(cli, "load_config") as config, \
                 patch("atlas.client.AtlassianClient") as client, \
                 patch.object(conf_publish.shutil, "which", return_value="mmdc"), \
                 patch.object(conf_publish, "_render_mermaid", return_value=_PNG_DATA), \
-                redirect_stdout(io.StringIO()) as stdout, redirect_stderr(io.StringIO()):
-            cli.main()
+                redirect_stderr(io.StringIO()):
+            with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as stdout:
+                cli.main()
+            with patch.object(sys, "argv", [*argv, "--json"]), redirect_stdout(io.StringIO()) as json_stdout:
+                cli.main()
     config.assert_not_called()
     client.assert_not_called()
     preview = stdout.getvalue()
@@ -197,6 +200,15 @@ def test_dry_run_uses_real_cli_path_without_credentials():
     assert preview.splitlines()[1] == f"Attachments: {_ATTACHMENT}"
     assert "<h1>Design</h1>" in preview
     assert preview.count(f'ri:filename="{_ATTACHMENT}"') == 2
+    assert json.loads(json_stdout.getvalue()) == {
+        "schema_version": 1,
+        "operation": "conf.publish",
+        "id": "123",
+        "title": "Design",
+        "dry_run": True,
+        "attachments": [_ATTACHMENT],
+        "body": {"format": "storage", "value": preview.split("\n\n", 1)[1].removesuffix("\n")},
+    }
 
 
 def test_publish_version_conflict_reports_uploaded_files_and_does_not_retry():
@@ -211,6 +223,7 @@ def test_publish_version_conflict_reports_uploaded_files_and_does_not_retry():
             redirect_stdout(io.StringIO()) as stdout, redirect_stderr(io.StringIO()) as stderr, \
             TestCase().assertRaises(SystemExit) as failure:
         args = _publish_input(directory, f"{_DIAGRAM}\n\n{_DIAGRAM}")
+        args.json = True
         conf_publish.run(args, client)
     assert failure.exception.code == 1
     assert stdout.getvalue() == ""
@@ -280,6 +293,7 @@ def test_cli_publish_and_retry_keep_one_attachment_and_update_the_page():
         argv = ["atlas", "conf", "publish", "123", str(args.input_file), "--title", "Design", "--minor"]
         with patch.object(sys, "argv", argv):
             cli.main()
+        with patch.object(sys, "argv", [*argv, "--json"]):
             cli.main()
 
     requests = [call.args[0] for call in send.call_args_list]
@@ -306,7 +320,19 @@ def test_cli_publish_and_retry_keep_one_attachment_and_update_the_page():
     assert first["title"] == retry["title"] == "Design"
     assert first["body"] == retry["body"]
     assert retry["body"]["storage"]["value"].count(f'ri:filename="{_ATTACHMENT}"') == 2
-    assert stdout.getvalue().splitlines() == [f"Published: https://example.invalid/wiki{page_link}"] * 2
+    text_result, json_result = stdout.getvalue().splitlines()
+    url = f"https://example.invalid/wiki{page_link}"
+    assert text_result == f"Published: {url}"
+    assert json.loads(json_result) == {
+        "schema_version": 1,
+        "operation": "conf.publish",
+        "id": "123",
+        "title": "Design",
+        "version": 6,
+        "url": url,
+        "dry_run": False,
+        "attachments": [_ATTACHMENT],
+    }
     assert f"Reusing attachment {_ATTACHMENT}" in stderr.getvalue()
 
 
@@ -326,7 +352,9 @@ def test_failed_second_upload_reports_only_completed_attachment_and_skips_page_u
         redirect_stderr(io.StringIO()) as stderr,
         TestCase().assertRaises(SystemExit) as failure,
     ):
-        conf_publish.run(_publish_input(directory, f"{_DIAGRAM}\n\n{_DIAGRAM}"), client)
+        args = _publish_input(directory, f"{_DIAGRAM}\n\n{_DIAGRAM}")
+        args.json = True
+        conf_publish.run(args, client)
 
     assert failure.exception.code == 1
     assert stdout.getvalue() == ""

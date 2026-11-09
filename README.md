@@ -262,6 +262,32 @@ attachments for identical rendered PNGs. If Confluence reports a page version
 conflict, review the latest page before retrying. Atlas lists any attachments
 it uploaded before the failure.
 
+### JSON results for writes
+
+Add `--json` to receive one object on stdout with `schema_version: 1` and the
+`operation` shown below. Progress and errors go to stderr. A failed command
+exits nonzero and leaves stdout empty.
+
+| Operation | Result fields |
+| --- | --- |
+| `jira.create` | `key`, `id` |
+| `jira.update` | `key`, `changed` (`false` when no fields were supplied) |
+| `jira.comment` | `key`, `comment_id` |
+| `jira.transition` | `key`, `transition_id` |
+| `conf.create` | `id`, `title` |
+| `conf.update` | `id`, `title`, `version` |
+| `conf.publish` | `id`, `title`, `version`, `url`, `dry_run` (`false`), `attachments` (file names) |
+| `conf.publish` with `--dry-run` | `id`, `title`, `dry_run` (`true`), `attachments`, `body` (`format` and `value`) |
+
+Results reuse the requests already made by the command. Missing response
+fields such as a created resource's ID or a published page's URL appear as
+`null`.
+
+```bash
+atlas jira update PROJ-123 --summary "New summary" --json
+atlas conf publish 12345678 doc.md --title "Design Doc" --dry-run --json
+```
+
 ## Adding commands
 
 Each command is a single file in `atlas/commands/`. Create a new file with `register(subparser)` and `run(args, client)` functions — it's auto-discovered.

@@ -4,6 +4,7 @@ import json
 
 from atlas.adf import markdown_to_adf
 from atlas.config import require_acceptance_criteria_field
+from atlas.output import print_json
 
 
 def register(subparser):
@@ -15,6 +16,7 @@ def register(subparser):
     p.add_argument("--labels", help="Comma-separated labels (replaces existing)")
     p.add_argument("--ac", help="New Markdown acceptance criteria (requires acceptance_criteria_field in config)")
     p.add_argument("--fields", help="Additional fields as JSON object")
+    p.add_argument("--json", action="store_true", help="Output the result as JSON")
     p.set_defaults(func=run)
 
 
@@ -40,9 +42,13 @@ def run(args, client):
         extra = json.loads(args.fields)
         fields.update(extra)
 
-    if not fields:
-        print("Nothing to update. Provide at least one of --summary, --description, --assignee, --labels, --ac, --fields.")
-        return
+    changed = bool(fields)
+    if changed:
+        client.jira_put(f"issue/{args.key}", json_body={"fields": fields})
 
-    client.jira_put(f"issue/{args.key}", json_body={"fields": fields})
-    print(f"Updated {args.key}")
+    if args.json:
+        print_json(operation="jira.update", key=args.key, changed=changed)
+    elif changed:
+        print(f"Updated {args.key}")
+    else:
+        print("Nothing to update. Provide at least one of --summary, --description, --assignee, --labels, --ac, --fields.")

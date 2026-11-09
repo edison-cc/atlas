@@ -15,6 +15,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+from atlas.output import print_json
+
+
 class PublishError(Exception):
     """A local validation or publication failure."""
 
@@ -31,6 +34,7 @@ def register(subparser):
         "--dry-run", action="store_true",
         help="Render locally and preview the page body and attachments without connecting to Confluence",
     )
+    p.add_argument("--json", action="store_true", help="Output the result or preview as JSON")
     p.set_defaults(func=run)
 
 
@@ -45,9 +49,16 @@ def run(args, client):
         content, attachments = _prepare_diagrams(content)
         storage_content = _markdown_to_storage(content)
         if args.dry_run:
-            print(f"Dry run for page {args.page_id}: {args.title}")
-            print(f"Attachments: {', '.join(attachments) or 'none'}")
-            print(f"\n{storage_content}")
+            if args.json:
+                print_json(
+                    operation="conf.publish", id=args.page_id, title=args.title,
+                    dry_run=True, attachments=list(attachments),
+                    body={"format": "storage", "value": storage_content},
+                )
+            else:
+                print(f"Dry run for page {args.page_id}: {args.title}")
+                print(f"Attachments: {', '.join(attachments) or 'none'}")
+                print(f"\n{storage_content}")
             return
         _publish(args, client, storage_content, attachments, uploaded)
     except (PublishError, RequestException, OSError, UnicodeError) as error:
@@ -96,7 +107,14 @@ def _publish(args, client, storage_content, attachments, uploaded):
 
     base_url = client.base_url.rstrip("/")
     web_link = current.get("_links", {}).get("webui", "")
-    print(f"Published: {base_url}/wiki{web_link}" if web_link else f"Published page {args.page_id}")
+    url = f"{base_url}/wiki{web_link}" if web_link else None
+    if args.json:
+        print_json(
+            operation="conf.publish", id=args.page_id, title=args.title,
+            version=version + 1, url=url, dry_run=False, attachments=list(attachments),
+        )
+    else:
+        print(f"Published: {url}" if url else f"Published page {args.page_id}")
 
 
 # ---------------------------------------------------------------------------

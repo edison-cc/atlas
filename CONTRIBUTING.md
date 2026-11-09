@@ -17,6 +17,7 @@ python tests/test_config.py
 python tests/test_request_errors.py
 python tests/test_jira_get.py
 python tests/test_read_fidelity.py
+python tests/test_write_output.py
 python tests/test_benchmarks.py
 ```
 
