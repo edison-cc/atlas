@@ -15,11 +15,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-from requests import HTTPError, RequestException
-
-from atlas.client import request_error_message
-
-
 class PublishError(Exception):
     """A local validation or publication failure."""
 
@@ -40,6 +35,10 @@ def register(subparser):
 
 
 def run(args, client):
+    from requests import RequestException
+
+    from atlas.client import request_error_message
+
     uploaded = []
     try:
         content = Path(args.input_file).read_text(encoding="utf-8")
@@ -60,6 +59,8 @@ def run(args, client):
 
 
 def _publish(args, client, storage_content, attachments, uploaded):
+    from requests import HTTPError
+
     path = f"content/{args.page_id}"
     current = client.confluence_get(path, params={"expand": "version"})
     version = current["version"]["number"]

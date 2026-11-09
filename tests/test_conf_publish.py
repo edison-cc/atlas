@@ -185,7 +185,7 @@ def test_dry_run_uses_real_cli_path_without_credentials():
         args = _publish_input(directory, f"# Design\n\n{_DIAGRAM}\n\n{_DIAGRAM}")
         argv = ["atlas", "conf", "publish", "123", str(args.input_file), "--title", "Design", "--dry-run"]
         with patch.object(sys, "argv", argv), patch.object(cli, "load_config") as config, \
-                patch.object(cli, "AtlassianClient") as client, \
+                patch("atlas.client.AtlassianClient") as client, \
                 patch.object(conf_publish.shutil, "which", return_value="mmdc"), \
                 patch.object(conf_publish, "_render_mermaid", return_value=_PNG_DATA), \
                 redirect_stdout(io.StringIO()) as stdout, redirect_stderr(io.StringIO()):
