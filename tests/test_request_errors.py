@@ -33,15 +33,20 @@ def response(status, retry_after=None):
 
 
 class RequestErrorTests(unittest.TestCase):
-    def test_jira_post_search_retries_once_after_throttling(self):
+    def test_read_only_jira_posts_retry_once_after_throttling(self):
         client = AtlassianClient(_CONFIG)
-        with (
-            patch.object(client.session, "request", side_effect=[response(429, "2"), response(200)]) as send,
-            patch("atlas.client.sleep") as sleep,
-        ):
-            self.assertEqual(client.jira_post("search/jql", {"jql": "project = DEMO"}), {"issues": []})
-        sleep.assert_called_once_with(2)
-        self.assertEqual(send.call_args_list[0], send.call_args_list[1])
+        for path, payload in [
+            ("search/jql", {"jql": "project = DEMO"}),
+            ("issue/bulkfetch", {"issueIdsOrKeys": ["DEMO-1", "DEMO-2"]}),
+        ]:
+            with (
+                self.subTest(path=path),
+                patch.object(client.session, "request", side_effect=[response(429, "2"), response(200)]) as send,
+                patch("atlas.client.sleep") as sleep,
+            ):
+                self.assertEqual(client.jira_post(path, payload), {"issues": []})
+                sleep.assert_called_once_with(2)
+                self.assertEqual(send.call_args_list[0], send.call_args_list[1])
 
     def test_repeated_throttling_ends_after_one_retry(self):
         client = AtlassianClient(_CONFIG)

@@ -3,6 +3,7 @@
 import argparse
 import json
 import platform
+import re
 import statistics
 import subprocess
 import sys
@@ -16,9 +17,9 @@ def commands(case, atlas, acli):
     kind = case["kind"]
     if kind == "page":
         return {
-            "atlas": [atlas, "conf", "get", case["id"], "--format", "storage", "--json"],
-            "acli": [acli, "confluence", "page", "view", "--id", case["id"],
-                     "--body-format", "storage", "--json"],
+            "atlas": [[atlas, "conf", "get", case["id"], "--format", "storage", "--json"]],
+            "acli": [[acli, "confluence", "page", "view", "--id", case["id"],
+                      "--body-format", "storage", "--json"]],
         }
     names = case["fields"]
     if not isinstance(names, list) or not names or not all(isinstance(name, str) and name for name in names):
@@ -26,24 +27,37 @@ def commands(case, atlas, acli):
     fields = ",".join(names)
     if kind == "issue":
         return {
-            "atlas": [atlas, "jira", "get", case["key"], "--fields", fields, "--json"],
-            "acli": [acli, "jira", "workitem", "view", case["key"], "--fields", fields, "--json"],
+            "atlas": [[atlas, "jira", "get", case["key"], "--fields", fields, "--json"]],
+            "acli": [[acli, "jira", "workitem", "view", case["key"], "--fields", fields, "--json"]],
         }
     if kind == "search":
         if not 0 <= case["count"] <= case["limit"] or case["limit"] < 1:
             raise ValueError("Expected search count must be within the requested limit")
         limit = str(case["limit"])
         return {
-            "atlas": [atlas, "jira", "search", case["jql"], "--fields", fields, "--limit", limit, "--json"],
-            "acli": [acli, "jira", "workitem", "search", "--jql", case["jql"], "--fields", fields,
-                     "--limit", limit, "--json"],
+            "atlas": [[atlas, "jira", "search", case["jql"], "--fields", fields, "--limit", limit, "--json"]],
+            "acli": [[acli, "jira", "workitem", "search", "--jql", case["jql"], "--fields", fields,
+                      "--limit", limit, "--json"]],
         }
-    raise ValueError("Case kind must be issue, search, or page")
+    if kind == "bulk":
+        keys = case["keys"]
+        if not isinstance(keys, list) or not keys or not all(
+            isinstance(key, str) and re.fullmatch(r"[A-Z][A-Z0-9_]*-[0-9]+", key) for key in keys
+        ) or len(set(keys)) != len(keys):
+            raise ValueError("Bulk cases require distinct Jira issue keys")
+        jql = f"key in ({', '.join(keys)})"
+        return {
+            "atlas_single": [[atlas, "jira", "get", key, "--fields", fields, "--json"] for key in keys],
+            "atlas": [[atlas, "jira", "get", *keys, "--fields", fields, "--json"]],
+            "acli": [[acli, "jira", "workitem", "search", "--jql", jql,
+                      "--fields", fields, "--paginate", "--json"]],
+        }
+    raise ValueError("Case kind must be issue, search, page, or bulk")
 
 
-def comparable(case, method, output):
-    data = json.loads(output)
-    if method == "atlas" and data.get("schema_version") != 1:
+def comparable(case, method, payloads):
+    data = payloads[0]
+    if method in ("atlas", "atlas_single") and any(row.get("schema_version") != 1 for row in payloads):
         raise ValueError("Atlas JSON schema version 1 is required")
     if case["kind"] == "page":
         if str(data["id"]) != case["id"]:
@@ -57,10 +71,25 @@ def comparable(case, method, output):
         if data["key"] != case["key"]:
             raise ValueError("Unexpected issue")
         rows = [data]
-    else:
+    elif case["kind"] == "search":
         rows = data["items"] if method == "atlas" else data
         if len(rows) != case["count"]:
             raise ValueError("Unexpected search result count")
+    else:
+        keys = case["keys"]
+        if method == "atlas_single" or (method == "atlas" and len(keys) == 1):
+            rows = payloads
+        elif method == "atlas":
+            if data["errors"]:
+                raise ValueError("Incomplete bulk result")
+            rows = data["items"]
+        else:
+            by_key = {row["key"]: row for row in data}
+            if len(data) != len(keys) or set(by_key) != set(keys):
+                raise ValueError("Unexpected ACLI issues")
+            rows = [by_key[key] for key in keys]
+        if [row["key"] for row in rows] != keys:
+            raise ValueError("Unexpected issues or order")
     projected = []
     for row in rows:
         fields = {name: row["fields"][name] for name in case["fields"] if name != "key"}
@@ -83,28 +112,38 @@ def comparable(case, method, output):
 def run_case(case, executables, runs, warmup):
     # Persist only safe labels, field names, and numeric samples.
     result = {key: case[key] for key in ("name", "kind", "fields", "limit", "count") if key in case}
+    if case["kind"] == "bulk":
+        result["count"] = len(case["keys"])
+    methods = tuple(executables)
     result["samples"] = []
     for index in range(warmup + runs):
-        order = ("atlas", "acli") if index % 2 == 0 else ("acli", "atlas")
+        offset = index % len(methods)
+        order = methods[offset:] + methods[:offset]
         sample = {"phase": "warmup" if index < warmup else "measured", "iteration": index}
         responses = {}
         for method in order:
             try:
-                elapsed, output = run_cli(executables[method], [])
-                responses[method] = comparable(case, method, output)
-                sample[method] = {"ms": round(elapsed, 3), "stdout_bytes": len(output.encode("utf-8"))}
+                outputs = [run_cli(command, []) for command in executables[method]]
+                responses[method] = comparable(case, method, [json.loads(output) for _, output in outputs])
+                sample[method] = {
+                    "ms": round(sum(elapsed for elapsed, _ in outputs), 3),
+                    "stdout_bytes": sum(len(output.encode("utf-8")) for _, output in outputs),
+                }
             except (ValueError, TypeError, KeyError, RuntimeError, OSError, subprocess.TimeoutExpired) as error:
                 sample[method] = {"error": type(error).__name__}
-        sample["matched"] = len(responses) == 2 and responses["atlas"] == responses["acli"]
+        sample["matched"] = len(responses) == len(methods) and all(
+            responses[method] == responses["atlas"] for method in methods
+        )
         result["samples"].append(sample)
     measured = [sample for sample in result["samples"] if sample["phase"] == "measured"]
     matched = [sample for sample in measured if sample["matched"]]
-    result["mismatched_pairs"] = sum(
-        not sample["matched"] and all("error" not in sample[method] for method in ("atlas", "acli"))
+    mismatch_count = "mismatched_rounds" if case["kind"] == "bulk" else "mismatched_pairs"
+    result[mismatch_count] = sum(
+        not sample["matched"] and all("error" not in sample[method] for method in methods)
         for sample in measured
     )
     result["summary"] = {}
-    for method in ("atlas", "acli"):
+    for method in methods:
         summary = {
             "attempted": len(measured),
             "failed": sum("error" in sample[method] for sample in measured),

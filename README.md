@@ -226,6 +226,7 @@ sets the requested page size, and Atlas follows every page at each requested dep
 ```bash
 atlas jira get PROJ-123  # issue details
 atlas jira get PROJ-123 --comments  # with comments
+atlas jira get PROJ-123 PROJ-456 --fields summary,status --json  # bulk read by key
 atlas jira search "project = PROJ AND status = Open"  # JQL search
 atlas jira search "parent = PROJ-100" --story-points --parent  # extra columns
 atlas jira children PROJ-100 --story-points  # recursive
@@ -239,6 +240,17 @@ atlas jira transitions PROJ-123  # list available
 atlas jira transition PROJ-123 31  # move to status
 atlas jira create --help  # discover all flags
 ```
+
+With multiple issue keys or IDs, `jira get` uses Jira Bulk Fetch in batches of
+up to 100 distinct identifiers. Results follow the input order. Use current
+issue keys or IDs for bulk reads. A single-key read can also resolve a moved
+issue's former key.
+
+Bulk `--json` returns `schema_version`, `items`, and `errors`. Successful items
+use the single-issue result fields, including `comments_pagination` with
+`--comments`. Errors identify the requested input and describe the failure.
+If Jira omits any issue, Atlas returns the available items and exits with
+status 1. A failed HTTP request leaves stdout empty.
 
 ### Confluence
 

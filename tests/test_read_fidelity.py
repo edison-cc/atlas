@@ -131,7 +131,7 @@ class ReadFidelityTests(unittest.TestCase):
             {"issues": [{"key": "DEV-1", "id": "1", "fields": fields}], "nextPageToken": "more"},
         ]
         with redirect_stdout(io.StringIO()) as output:
-            jira_get.run(Namespace(key="DEV-1", fields="customfield_123", comments=False, json=True), client)
+            jira_get.run(Namespace(keys=["DEV-1"], fields="customfield_123", comments=False, json=True), client)
             jira_search.run(Namespace(
                 jql="project = DEV", fields="customfield_123", story_points=False, parent=False,
                 limit=1, json=True,

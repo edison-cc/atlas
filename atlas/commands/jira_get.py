@@ -1,8 +1,13 @@
-"""atlas jira get <KEY> -- show issue details as compact Markdown."""
+"""atlas jira get <KEY> [<KEY> ...] -- show issue details."""
+
+import sys
 
 from atlas.adf import adf_to_markdown
 from atlas.config import get_acceptance_criteria_field, get_story_points_field
 from atlas.output import pagination, print_json
+
+
+_BULK_SIZE = 100
 
 
 def issue_fields(
@@ -29,7 +34,7 @@ def issue_fields(
 
 def register(subparser):
     p = subparser.add_parser("get", help="Get issue details")
-    p.add_argument("key", help="Issue key (e.g. PROJ-123)")
+    p.add_argument("keys", nargs="+", metavar="KEY", help="One or more issue keys or IDs")
     p.add_argument("--fields", help="Comma-separated fields to fetch")
     p.add_argument("--json", action="store_true", help="Output structured JSON")
     p.add_argument(
@@ -42,26 +47,74 @@ def register(subparser):
 def run(args, client):
     sp_field = get_story_points_field()
     ac_field = get_acceptance_criteria_field()
-    params = {
-        "fields": issue_fields(args.fields, args.comments, [sp_field, ac_field]),
-    }
-
-    data = client.jira_get(f"issue/{args.key}", params=params)
-    fields = data.get("fields", {})
-    if args.comments:
-        comment_page = fields.get("comment") or {}
-        comments = comment_page.get("comments") or []
-        comment_count = len(comments)
-        comment_total = comment_page.get("total")
-        more_comments = comment_count < comment_total if comment_total is not None else None
-
-    if args.json:
-        result = {"key": data.get("key", args.key), "id": data.get("id"), "fields": fields}
-        if args.comments:
-            result["comments_pagination"] = pagination(comment_count, comment_total, more_comments)
-        print_json(**result)
+    fields = issue_fields(args.fields, args.comments, [sp_field, ac_field])
+    if len(args.keys) == 1:
+        key = args.keys[0]
+        data = client.jira_get(f"issue/{key}", params={"fields": fields})
+        result = _issue_result(data, key, args.comments)
+        if args.json:
+            print_json(**result)
+        else:
+            _print_issue(result, key, sp_field, ac_field)
         return
 
+    items, errors = _fetch_bulk(client, args.keys, fields.split(","), args.comments)
+    if args.json:
+        print_json(items=items, errors=errors)
+    else:
+        for index, item in enumerate(items):
+            if index:
+                print()
+            _print_issue(item, item["key"], sp_field, ac_field)
+    if errors:
+        for error in errors:
+            print(f'{error["input"]}: {error["message"]}', file=sys.stderr)
+        raise SystemExit(1)
+
+
+def _fetch_bulk(client, keys, fields, include_comments):
+    by_input = {}
+    for key in keys:
+        by_input.setdefault(key.casefold(), key)
+    unique = list(by_input.values())
+    issues = {}
+    messages = {}
+    for start in range(0, len(unique), _BULK_SIZE):
+        response = client.jira_post("issue/bulkfetch", json_body={
+            "issueIdsOrKeys": unique[start:start + _BULK_SIZE],
+            "fields": fields,
+        })
+        for issue in response.get("issues") or []:
+            issues[issue["key"].casefold()] = issue
+            issues[str(issue["id"])] = issue
+        for error in response.get("issueErrors") or []:
+            if error.get("id") is not None and error.get("errorMessage"):
+                messages[str(error["id"])] = error["errorMessage"]
+
+    items, errors = [], []
+    for key in keys:
+        identifier = key.casefold()
+        if identifier in issues:
+            items.append(_issue_result(issues[identifier], key, include_comments))
+        else:
+            message = messages.get(identifier, "Jira did not return an issue for this key or ID.")
+            errors.append({"input": key, "message": message})
+    return items, errors
+
+
+def _issue_result(data, requested_key, include_comments):
+    fields = data.get("fields", {})
+    result = {"key": data.get("key", requested_key), "id": data.get("id"), "fields": fields}
+    if include_comments:
+        comment_page = fields.get("comment") or {}
+        count = len(comment_page.get("comments") or [])
+        total = comment_page.get("total")
+        result["comments_pagination"] = pagination(count, total, count < total if total is not None else None)
+    return result
+
+
+def _print_issue(result, display_key, sp_field, ac_field):
+    fields = result["fields"]
     summary = fields.get("summary", "")
     status = _name(fields.get("status"))
     issue_type = _name(fields.get("issuetype"))
@@ -76,7 +129,7 @@ def run(args, client):
     sprint = _extract_sprint(fields)
     parent_key, parent_type = _extract_parent(fields)
 
-    print(f"## {args.key}: {summary}")
+    print(f"## {display_key}: {summary}")
     print()
     print(f"- **Status**: {status} | **Type**: {issue_type} | **Priority**: {priority}")
     print(f"- **Assignee**: {assignee} | **Reporter**: {reporter}")
@@ -108,7 +161,11 @@ def run(args, client):
             print()
             print(ac_text)
 
-    if args.comments:
+    if "comments_pagination" in result:
+        info = result["comments_pagination"]
+        comment_count = info["returned"]
+        comment_total = info["total"]
+        comments = (fields.get("comment") or {}).get("comments") or []
         count_label = (
             f"{comment_count} of {comment_total} shown"
             if comment_total is not None else f"{comment_count} shown, total unknown"

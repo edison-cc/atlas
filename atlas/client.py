@@ -88,7 +88,9 @@ class AtlassianClient:
         url = f"{self.base_url}{path}"
         kwargs.setdefault("timeout", 30)
         resp = self.session.request(method, url, **kwargs)
-        read_only = method == "GET" or (method == "POST" and path == "/rest/api/3/search/jql")
+        read_only = method == "GET" or (method == "POST" and path in (
+            "/rest/api/3/search/jql", "/rest/api/3/issue/bulkfetch",
+        ))
         if read_only and resp.status_code in (429, 503):
             seconds = _retry_after(resp)
             if seconds is not None and seconds <= 5:

@@ -3,10 +3,13 @@
 import io
 import json
 import sys
-from argparse import Namespace
-from contextlib import redirect_stdout
+from argparse import ArgumentParser, Namespace
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest import TestCase
 from unittest.mock import Mock, patch
+
+from requests import ReadTimeout
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -39,7 +42,7 @@ def test_configured_custom_fields_are_appended():
 def _get_issue(fields, *, comments, json_output):
     client = Mock()
     client.jira_get.return_value = {"key": "DEMO-1", "id": "101", "fields": fields}
-    args = Namespace(key="DEMO-1", fields="summary", comments=comments, json=json_output)
+    args = Namespace(keys=["DEMO-1"], fields="summary", comments=comments, json=json_output)
     with (
         patch.object(jira_get, "get_story_points_field", return_value=None),
         patch.object(jira_get, "get_acceptance_criteria_field", return_value=None),
@@ -85,6 +88,89 @@ def test_default_get_does_not_add_comment_metadata():
     assert json.loads(_get_issue(fields, comments=False, json_output=True)) == {
         "schema_version": 1, "key": "DEMO-1", "id": "101", "fields": fields,
     }
+
+
+def _bulk_args(keys, *, comments=False):
+    parser = ArgumentParser()
+    jira_get.register(parser.add_subparsers())
+    options = ["--comments"] if comments else []
+    return parser.parse_args(["get", *keys, "--fields", "summary", "--json", *options])
+
+
+def test_bulk_get_preserves_input_order_and_reports_partial_results():
+    client = Mock()
+    client.jira_post.return_value = {
+        "issues": [
+            {"key": "DEMO-1", "id": "101", "fields": {"summary": "One"}},
+            {"key": "DEMO-2", "id": "102", "fields": {"summary": "Two", "comment": {"total": 1}}},
+        ],
+        "issueErrors": [{"id": "103", "errorMessage": "Issue exceeds the response size limit."}],
+    }
+    args = _bulk_args(["demo-2", "101", "DEMO-2", "103", "DEMO-999"], comments=True)
+    with (
+        patch.object(jira_get, "get_story_points_field", return_value=None),
+        patch.object(jira_get, "get_acceptance_criteria_field", return_value="customfield_123"),
+        redirect_stdout(io.StringIO()) as stdout,
+        redirect_stderr(io.StringIO()) as stderr,
+        TestCase().assertRaises(SystemExit) as failure,
+    ):
+        jira_get.run(args, client)
+
+    assert failure.exception.code == 1
+    client.jira_get.assert_not_called()
+    client.jira_post.assert_called_once_with("issue/bulkfetch", json_body={
+        "issueIdsOrKeys": ["demo-2", "101", "103", "DEMO-999"],
+        "fields": ["summary", "comment", "customfield_123"],
+    })
+    result = json.loads(stdout.getvalue())
+    assert result["schema_version"] == 1
+    assert [item["key"] for item in result["items"]] == ["DEMO-2", "DEMO-1", "DEMO-2"]
+    assert result["items"][0]["comments_pagination"] == {"returned": 0, "total": 1, "has_more": True}
+    assert result["errors"] == [
+        {"input": "103", "message": "Issue exceeds the response size limit."},
+        {"input": "DEMO-999", "message": "Jira did not return an issue for this key or ID."},
+    ]
+    assert "103:" in stderr.getvalue() and "DEMO-999:" in stderr.getvalue()
+
+
+def test_bulk_get_chunks_large_lists_and_keeps_their_order():
+    for count, expected_sizes in [(50, [50]), (100, [100]), (101, [100, 1])]:
+        keys = [f"DEMO-{index}" for index in range(count, 0, -1)]
+        sizes = []
+
+        def fetch(path, json_body):
+            assert path == "issue/bulkfetch"
+            identifiers = json_body["issueIdsOrKeys"]
+            sizes.append(len(identifiers))
+            return {"issues": [
+                {"key": key, "id": key.split("-")[1], "fields": {}}
+                for key in reversed(identifiers)
+            ]}
+
+        client = Mock()
+        client.jira_post.side_effect = fetch
+        items, errors = jira_get._fetch_bulk(client, keys, ["summary"], False)
+        assert sizes == expected_sizes
+        assert [item["key"] for item in items] == keys
+        assert errors == []
+
+
+def test_bulk_get_leaves_stdout_empty_when_a_later_request_fails():
+    client = Mock()
+    client.jira_post.side_effect = [
+        {"issues": [{"key": "DEMO-1", "id": "101", "fields": {}}]},
+        ReadTimeout(),
+    ]
+    args = _bulk_args([f"DEMO-{index}" for index in range(1, 102)])
+    with (
+        patch.object(jira_get, "get_story_points_field", return_value=None),
+        patch.object(jira_get, "get_acceptance_criteria_field", return_value=None),
+        redirect_stdout(io.StringIO()) as stdout,
+        TestCase().assertRaises(ReadTimeout),
+    ):
+        jira_get.run(args, client)
+    assert client.jira_post.call_count == 2
+    assert stdout.getvalue() == ""
 
 
 if __name__ == "__main__":
