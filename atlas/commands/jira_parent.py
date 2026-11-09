@@ -1,11 +1,14 @@
 """atlas jira parent <KEY> -- show ancestor chain up the hierarchy."""
 
+from atlas.output import print_json
+
 
 def register(subparser):
     p = subparser.add_parser("parent", help="Show ancestor chain (walks up)")
     p.add_argument("key", help="Issue key (e.g. PROJ-123)")
     p.add_argument("--depth", type=int, default=5,
                     help="Max levels to traverse (default: 5)")
+    p.add_argument("--json", action="store_true", help="Output structured JSON")
     p.set_defaults(func=run)
 
 
@@ -14,28 +17,36 @@ def run(args, client):
     chain = []
     current_key = args.key
 
-    for _ in range(args.depth + 1):
+    for depth in range(args.depth + 1):
         data = client.jira_get(f"issue/{current_key}", params={"fields": api_fields})
         fields = data.get("fields", {})
+        parent = fields.get("parent")
+        parent_key = parent.get("key") if isinstance(parent, dict) else None
         chain.append({
             "key": current_key,
-            "summary": fields.get("summary", ""),
-            "type": _name(fields.get("issuetype")),
-            "status": _name(fields.get("status")),
+            "id": data.get("id"),
+            "parent_key": parent_key,
+            "depth": depth,
+            "fields": fields,
         })
-        parent = fields.get("parent")
-        if not parent or not isinstance(parent, dict):
+        if not parent_key:
             break
-        current_key = parent.get("key", "")
-        if not current_key:
-            break
+        current_key = parent_key
+
+    if args.json:
+        print_json(root_key=args.key, items=chain)
+        return
 
     print(f"## Ancestors of {args.key}")
     print()
 
-    for depth, item in enumerate(chain):
-        indent = "  " * depth
-        print(f"{indent}- {item['key']}: {item['summary']} ({item['type']}) — {item['status']}")
+    for item in chain:
+        indent = "  " * item["depth"]
+        fields = item["fields"]
+        summary = fields.get("summary", "")
+        issue_type = _name(fields.get("issuetype"))
+        status = _name(fields.get("status"))
+        print(f"{indent}- {item['key']}: {summary} ({issue_type}) — {status}")
 
 
 def _name(obj):
