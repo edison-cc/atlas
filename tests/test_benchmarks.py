@@ -177,13 +177,39 @@ class BenchmarkTests(unittest.TestCase):
         changed = {**acli, "fields": {"summary": "different title"}}
         responses = [(100, json.dumps(row)) for row in (atlas, acli, changed, atlas)]
         with patch.object(benchmark_acli, "run_cli", side_effect=responses):
-            report = benchmark_acli.run_case(case, {"atlas": [], "acli": []}, runs=2, warmup=0)
+            report = benchmark_acli.run_case(case, {"atlas": [[]], "acli": [[]]}, runs=2, warmup=0)
         self.assertEqual(report["mismatched_pairs"], 1)
         self.assertEqual(report["summary"]["atlas"]["matched"], 1)
         self.assertEqual(report["summary"]["acli"]["attempted"], 2)
         self.assertNotIn("PRIVATE-1", json.dumps(report))
         self.assertNotIn("private title", json.dumps(report))
         self.assertNotIn("private URL", json.dumps(report))
+
+    def test_bulk_benchmark_matches_acli_regardless_of_order_and_totals_single_reads(self):
+        case = {
+            "name": "anonymous bulk read", "kind": "bulk",
+            "keys": ["PRIVATE-2", "PRIVATE-1"], "fields": ["summary"],
+        }
+        first = {"key": "PRIVATE-2", "id": "102", "fields": {"summary": "Private title"}}
+        second = {"key": "PRIVATE-1", "id": "101", "fields": {"summary": "Another title"}}
+        payloads = [
+            (10, {"schema_version": 1, **first}),
+            (20, {"schema_version": 1, **second}),
+            (12, {"schema_version": 1, "items": [first, second], "errors": []}),
+            (25, [second, first]),
+        ]
+        commands = benchmark_acli.commands(case, "atlas", "acli")
+        with patch.object(benchmark_acli, "run_cli", side_effect=[
+            (elapsed, json.dumps(payload)) for elapsed, payload in payloads
+        ]) as run:
+            report = benchmark_acli.run_case(case, commands, runs=1, warmup=0)
+        self.assertEqual(run.call_count, 4)
+        self.assertEqual(report["summary"]["atlas_single"]["median_ms"], 30)
+        self.assertEqual(report["summary"]["atlas"]["matched"], 1)
+        self.assertEqual(report["summary"]["acli"]["matched"], 1)
+        self.assertEqual(report["mismatched_rounds"], 0)
+        self.assertNotIn("PRIVATE-2", json.dumps(report))
+        self.assertNotIn("Private title", json.dumps(report))
 
 
 if __name__ == '__main__':

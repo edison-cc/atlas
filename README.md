@@ -63,6 +63,19 @@ and a one-command Markdown and Mermaid publishing workflow for Confluence.
 See the [full comparison and raw samples](benchmarks/ACLI.md) and the
 [benchmark protocol](benchmarks/README.md).
 
+### Batch reads by Jira issue key
+
+```bash
+atlas jira get PROJ-123 PROJ-456 --fields summary,status --json
+```
+
+In a live 16-issue read, Atlas Bulk Fetch took **296 ms median**, versus
+**1,226 ms** for ACLI batch JQL and **4,244 ms** for 16 separate Atlas calls.
+A separate request count confirmed that Atlas used one HTTP request for the
+batch. All 21 rounds returned matching keys, IDs, summaries, and statuses.
+
+[![Median latency for 16 Jira issues. Atlas Bulk Fetch took 296 ms, ACLI batch JQL took 1,226 ms, and separate Atlas calls took 4,244 ms.](benchmarks/jira-bulk-comparison.svg)](benchmarks/ACLI.md#live-jira-bulk-read-benchmark)
+
 ## Quick Start
 
 ### Prerequisites
@@ -223,9 +236,21 @@ Jira rejects a search with no restriction, such as `order by created DESC`. Incl
 Search shows whether more results are available. For `jira children`, `--limit`
 sets the requested page size, and Atlas follows every page at each requested depth.
 
+With multiple issue keys or IDs, `jira get` uses Jira Bulk Fetch in batches of
+up to 100 distinct identifiers. Results follow the input order. Use current
+issue keys or IDs for bulk reads. A single-key read can also resolve a moved
+issue's former key.
+
+Bulk `--json` returns `schema_version`, `items`, and `errors`. Successful items
+use the single-issue result fields, including `comments_pagination` with
+`--comments`. Errors identify the requested input and describe the failure.
+If Jira omits any issue, Atlas returns the available items and exits with
+status 1. A failed HTTP request leaves stdout empty.
+
 ```bash
 atlas jira get PROJ-123  # issue details
 atlas jira get PROJ-123 --comments  # with comments
+atlas jira get PROJ-123 PROJ-456 --fields summary,status --json  # bulk read by key
 atlas jira search "project = PROJ AND status = Open"  # JQL search
 atlas jira search "parent = PROJ-100" --story-points --parent  # extra columns
 atlas jira children PROJ-100 --story-points  # recursive
