@@ -66,11 +66,30 @@ Byte counts include each CLI's native JSON envelope and whitespace.
 
 The measured Atlas tree combined [the JSON output change](https://github.com/edison-cc/atlas/commit/e011e0f6cfb49fd2254676a8c997ef00e70af9c4)
 with [the startup and benchmark change](https://github.com/edison-cc/atlas/commit/be69a152c85ae9664148e034ea9670c730f625a5).
-The [anonymized report](results/atlas-acli-2026-11-08.json) records the exact
-tree ID and individual samples. The scope is Jira reads on one site, with the
-tools' configured authentication and request paths. Confluence timings require
-a separate ACLI Confluence login. The run did not instrument HTTP request
-counts.
+The [anonymized Jira report](results/atlas-acli-2026-11-08.json) records the exact
+tree ID and individual samples. The run did not instrument HTTP request counts.
+
+## Live Confluence benchmark
+
+A separate run on November 8, 2026 (Pacific time) used the same Mac, site, and
+CLI builds. Atlas used an API token and ACLI used its Confluence OAuth login.
+Both requested JSON with the storage body. The validator compared the page
+ID, title, and exact storage string for every pair.
+
+| Confluence workload | Atlas p50 / p95 (ms) | ACLI p50 / p95 (ms) | Atlas / ACLI stdout (median bytes) |
+| --- | ---: | ---: | ---: |
+| Page with a 2.2 KB storage body | 260.8 / 325.7 | 990.2 / 1,153.2 | 2,473 / 4,007 |
+| Page with a 16.3 KB storage body | 230.9 / 284.8 | 1,016.3 / 1,188.2 | 16,921 / 23,762 |
+
+Atlas had 74–77% lower median latency and 29–38% fewer JSON stdout bytes
+across the two page reads. All 60 measured pairs matched and all 120 commands
+succeeded. Each case used two warm-up pairs and 30 measured pairs. Timing
+includes the configured authentication and request paths. Output byte counts
+include the CLI-specific JSON envelopes and whitespace.
+
+The [anonymized Confluence report](results/atlas-acli-confluence-2026-11-08.json)
+contains the individual samples. The measured Confluence workload covers
+page reads by ID.
 
 ## Reproduce the comparison
 

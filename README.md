@@ -37,14 +37,17 @@ body. To publish, use an existing Confluence page ID and omit `--dry-run`.
 ### Atlas vs. Atlassian CLI
 
 In seven matched live Jira read cases, Atlas had **63–69% lower median latency**
-and **33–59% fewer JSON stdout bytes** than ACLI 1.3.40. Each case had 30 matched
-pairs on the same Mac and Jira site. Atlas used an API token and ACLI used
-OAuth.
+and **33–59% fewer JSON stdout bytes** than ACLI 1.3.40. In two matched
+Confluence page reads, Atlas had **74–77% lower median latency** and **29–38%
+fewer JSON stdout bytes**. Each case had 30 matched pairs on the same Mac and
+Atlassian Cloud site. Atlas used an API token and ACLI used OAuth.
 
-| Jira workload | Atlas p50 / p95 | ACLI p50 / p95 |
+| Workload | Atlas p50 / p95 | ACLI p50 / p95 |
 | --- | ---: | ---: |
-| Issue with a comment | 273 / 315 ms | 809 / 926 ms |
-| JQL search, 16 rows | 333 / 407 ms | 1,077 / 1,269 ms |
+| Jira issue with a comment | 273 / 315 ms | 809 / 926 ms |
+| Jira JQL search, 16 rows | 333 / 407 ms | 1,077 / 1,269 ms |
+| Confluence page, 2.2 KB storage body | 261 / 326 ms | 990 / 1,153 ms |
+| Confluence page, 16.3 KB storage body | 231 / 285 ms | 1,016 / 1,188 ms |
 
 ACLI covers more Jira and Confluence operations in its visible command tree
 (70 command names versus 16), including Jira bulk actions and Confluence
