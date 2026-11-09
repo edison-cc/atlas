@@ -171,7 +171,7 @@ def fmt_stats(times):
             "min_ms": min(times), "max_ms": max(times)}
 
 
-def load_cases(path):
+def load_cases(path, *, include_mcp=True, include_comparison=False):
     cases = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(cases, list) or not cases:
         raise ValueError("Cases must be a nonempty JSON list")
@@ -181,13 +181,19 @@ def load_cases(path):
         if not isinstance(name, str) or not name or name in names:
             raise ValueError("Case names must be nonempty and unique")
         names.add(name)
-        for key in ("cli", "expect_cli", "expect_mcp"):
+        required_lists = ["cli", "expect_cli"]
+        if include_mcp:
+            required_lists.append("expect_mcp")
+        if include_comparison:
+            required_lists.extend(["compare_cli", "expect_compare_cli"])
+        for key in required_lists:
             if not isinstance(case.get(key), list) or not case[key] or not all(
                 isinstance(value, str) and value.strip() for value in case[key]
             ):
                 raise ValueError(f"{name}: {key} must contain nonempty strings")
-        if not isinstance(case.get("mcp_tool"), str) or not case["mcp_tool"] or not isinstance(case.get("mcp_args"), dict):
-            raise ValueError(f"{name}: specify mcp_tool and mcp_args")
+        if include_mcp:
+            if not isinstance(case.get("mcp_tool"), str) or not case["mcp_tool"] or not isinstance(case.get("mcp_args"), dict):
+                raise ValueError(f"{name}: specify mcp_tool and mcp_args")
     return cases
 
 
@@ -209,6 +215,7 @@ def main():
     parser.add_argument("--server-version", help="Server version or image digest for provenance")
     parser.add_argument("--mode", choices=["ephemeral", "persistent"], default="ephemeral")
     parser.add_argument("--atlas", default="atlas", help="Atlas executable")
+    parser.add_argument("--compare-cli", help="Optional comparison CLI executable")
     parser.add_argument("--output", required=True, help="New JSON result file (will not overwrite)")
     args = parser.parse_args()
     if args.runs < 1 or args.warmup < 0:
@@ -216,7 +223,8 @@ def main():
     if not args.cli_only and (not args.server or not args.server_version):
         parser.error("MCP comparison requires --server and --server-version")
     try:
-        cases = load_cases(args.cases)
+        cases = load_cases(args.cases, include_mcp=not args.cli_only,
+                           include_comparison=bool(args.compare_cli))
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
     command = ["docker", "mcp", "gateway", "run", "--servers", args.server or ""]
@@ -225,12 +233,18 @@ def main():
     report = {"status": "running", "started_at": datetime.now(timezone.utc).isoformat(),
               "environment": {"platform": platform.platform(), "python": platform.python_version(),
                               "atlas": command_version([args.atlas, "--version"]),
+                              "compare_cli": command_version([args.compare_cli, "--version"]) if args.compare_cli else None,
                               "docker": command_version(["docker", "--version"]) if not args.cli_only else None,
                               "server_version": args.server_version,
                               "gateway_command": command if not args.cli_only else None},
               "runs": args.runs, "warmup": args.warmup, "cases": cases,
               "samples": [], "summary": []}
     gateway = None
+    methods = ["cli"]
+    if args.compare_cli:
+        methods.append("compare_cli")
+    if not args.cli_only:
+        methods.append("mcp")
     # Reserve output before starting any requests; failed runs preserve partial samples.
     with open(args.output, "x", encoding="utf-8") as output:
         try:
@@ -238,12 +252,16 @@ def main():
                 gateway = McpGateway(command)
             for case in cases:
                 print(f"Measuring {case['name']}...", file=sys.stderr, flush=True)
-                methods = ["cli"] if args.cli_only else ["cli", "mcp"]
                 for index in range(args.warmup + args.runs):
                     phase = "warmup" if index < args.warmup else "measured"
-                    for method in methods[::1 if index % 2 == 0 else -1]:
+                    offset = index % len(methods)
+                    for method in methods[offset:] + methods[:offset]:
                         if method == "cli":
                             elapsed, text = run_cli([args.atlas, *case["cli"]], case["expect_cli"])
+                        elif method == "compare_cli":
+                            elapsed, text = run_cli(
+                                [args.compare_cli, *case["compare_cli"]], case["expect_compare_cli"]
+                            )
                         else:
                             elapsed, text = run_mcp(gateway, case["mcp_tool"], case["mcp_args"], case["expect_mcp"])
                         report["samples"].append({"case": case["name"], "method": method,

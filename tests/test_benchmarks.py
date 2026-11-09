@@ -144,6 +144,30 @@ class BenchmarkTests(unittest.TestCase):
                     self.assertEqual(report['summary'], [])
                     self.assertNotIn('| Operation |', process.stdout)
 
+    def test_two_clis_share_a_case_without_mcp_settings(self):
+        runner = Path(__file__).resolve().parents[1] / 'benchmarks' / 'benchmark_latency.py'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'cases.json'
+            path.write_text(json.dumps([{
+                'name': 'shared case',
+                'cli': ['-c', 'print("expected atlas")'],
+                'expect_cli': ['expected atlas'],
+                'compare_cli': ['-c', 'print("expected baseline")'],
+                'expect_compare_cli': ['expected baseline'],
+            }]))
+            output = root / 'result.json'
+            result = subprocess.run([
+                sys.executable, str(runner), '--cases', str(path), '--atlas', sys.executable,
+                '--compare-cli', sys.executable, '--cli-only', '--runs', '2', '--warmup', '0',
+                '--output', str(output),
+            ], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(output.read_text())
+            self.assertEqual([row['method'] for row in report['samples']],
+                             ['cli', 'compare_cli', 'compare_cli', 'cli'])
+            self.assertEqual([row['n'] for row in report['summary']], [2, 2])
+
 
 if __name__ == '__main__':
     unittest.main()
