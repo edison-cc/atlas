@@ -34,8 +34,24 @@ atlas conf publish 12345678 design.md --title "Design" --dry-run
 The preview shows the page ID, rendered attachment name, and converted page
 body. To publish, use an existing Confluence page ID and omit `--dry-run`.
 
-See the [benchmark protocol and historical results](benchmarks/README.md) for
-measurement details.
+### Atlas vs. Atlassian CLI
+
+In seven matched live Jira read cases, Atlas had **63–69% lower median latency**
+and **33–59% fewer JSON stdout bytes** than ACLI 1.3.40. Each case had 30 matched
+pairs on the same Mac and Jira site. Atlas used an API token and ACLI used
+OAuth.
+
+| Jira workload | Atlas p50 / p95 | ACLI p50 / p95 |
+| --- | ---: | ---: |
+| Issue with a comment | 273 / 315 ms | 809 / 926 ms |
+| JQL search, 16 rows | 333 / 407 ms | 1,077 / 1,269 ms |
+
+ACLI covers more Jira and Confluence operations in its visible command tree
+(70 command names versus 16), including Jira bulk actions and Confluence
+space and blog management. Atlas provides dedicated Jira hierarchy commands
+and a one-command Markdown and Mermaid publishing workflow for Confluence.
+See the [full comparison and raw samples](benchmarks/ACLI.md) and the
+[benchmark protocol](benchmarks/README.md).
 
 ## Quick Start
 

@@ -1,5 +1,8 @@
 # Benchmark protocol
 
+For live Jira measurements and command coverage, see the
+[Atlas and Atlassian CLI comparison](ACLI.md).
+
 The March 2026 reports are historical records with missing raw evidence. They
 describe one ephemeral Docker MCP configuration and measure reported characters
 and tool execution times. See the [latency](LATENCY.md), [output](OUTPUT.md), and

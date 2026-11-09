@@ -1,0 +1,3187 @@
+{
+  "started_at_utc": "2026-11-09T06:06:21.591431+00:00",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.12.13",
+  "atlas": "atlas 0.4.1",
+  "atlas_revision": "7b8694f13c5516dbb7b96b550355f57c5c7263c1",
+  "acli": "acli version 1.3.40-stable",
+  "runs": 30,
+  "warmup": 2,
+  "cases": [
+    {
+      "name": "Jira issue metadata",
+      "kind": "issue",
+      "fields": [
+        "key",
+        "summary",
+        "status"
+      ],
+      "samples": [
+        {
+          "phase": "warmup",
+          "iteration": 0,
+          "atlas": {
+            "ms": 344.518,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 855.829,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "warmup",
+          "iteration": 1,
+          "acli": {
+            "ms": 814.847,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 263.618,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 2,
+          "atlas": {
+            "ms": 327.222,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 766.943,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 3,
+          "acli": {
+            "ms": 848.007,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 317.325,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 4,
+          "atlas": {
+            "ms": 327.255,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 670.01,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 5,
+          "acli": {
+            "ms": 847.21,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 326.55,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 6,
+          "atlas": {
+            "ms": 311.306,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 857.297,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 7,
+          "acli": {
+            "ms": 746.334,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 262.012,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 8,
+          "atlas": {
+            "ms": 252.687,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 840.15,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 9,
+          "acli": {
+            "ms": 659.887,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 283.204,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 10,
+          "atlas": {
+            "ms": 247.914,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 736.638,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 11,
+          "acli": {
+            "ms": 896.149,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 361.877,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 12,
+          "atlas": {
+            "ms": 324.464,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 879.257,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 13,
+          "acli": {
+            "ms": 911.082,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 335.365,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 14,
+          "atlas": {
+            "ms": 249.265,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 638.966,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 15,
+          "acli": {
+            "ms": 915.976,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 283.838,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 16,
+          "atlas": {
+            "ms": 283.144,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 824.58,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 17,
+          "acli": {
+            "ms": 723.289,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 321.103,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 18,
+          "atlas": {
+            "ms": 237.613,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 836.627,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 19,
+          "acli": {
+            "ms": 869.505,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 343.749,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 20,
+          "atlas": {
+            "ms": 264.023,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 725.501,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 21,
+          "acli": {
+            "ms": 844.66,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 296.149,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 22,
+          "atlas": {
+            "ms": 236.392,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 933.043,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 23,
+          "acli": {
+            "ms": 650.611,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 256.338,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 24,
+          "atlas": {
+            "ms": 336.974,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 846.797,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 25,
+          "acli": {
+            "ms": 847.376,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 375.133,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 26,
+          "atlas": {
+            "ms": 318.975,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 797.877,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 27,
+          "acli": {
+            "ms": 877.892,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 277.078,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 28,
+          "atlas": {
+            "ms": 271.335,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 681.523,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 29,
+          "acli": {
+            "ms": 823.502,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 253.169,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 30,
+          "atlas": {
+            "ms": 254.943,
+            "stdout_bytes": 440
+          },
+          "acli": {
+            "ms": 837.51,
+            "stdout_bytes": 1005
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 31,
+          "acli": {
+            "ms": 841.737,
+            "stdout_bytes": 1005
+          },
+          "atlas": {
+            "ms": 276.216,
+            "stdout_bytes": 440
+          },
+          "matched": true
+        }
+      ],
+      "mismatched_pairs": 0,
+      "summary": {
+        "atlas": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 283.521,
+          "p95_ms": 361.877,
+          "min_ms": 236.392,
+          "max_ms": 375.133,
+          "median_stdout_bytes": 440.0
+        },
+        "acli": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 838.8299999999999,
+          "p95_ms": 915.976,
+          "min_ms": 638.966,
+          "max_ms": 933.043,
+          "median_stdout_bytes": 1005.0
+        }
+      }
+    },
+    {
+      "name": "Jira short description",
+      "kind": "issue",
+      "fields": [
+        "key",
+        "summary",
+        "status",
+        "description"
+      ],
+      "samples": [
+        {
+          "phase": "warmup",
+          "iteration": 0,
+          "atlas": {
+            "ms": 258.707,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 863.881,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "warmup",
+          "iteration": 1,
+          "acli": {
+            "ms": 789.817,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 293.521,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 2,
+          "atlas": {
+            "ms": 253.44,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 647.698,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 3,
+          "acli": {
+            "ms": 661.767,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 261.926,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 4,
+          "atlas": {
+            "ms": 317.997,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 743.992,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 5,
+          "acli": {
+            "ms": 699.592,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 351.017,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 6,
+          "atlas": {
+            "ms": 252.663,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 846.242,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 7,
+          "acli": {
+            "ms": 679.425,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 260.105,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 8,
+          "atlas": {
+            "ms": 241.673,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 648.9,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 9,
+          "acli": {
+            "ms": 842.864,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 289.458,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 10,
+          "atlas": {
+            "ms": 252.15,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 650.726,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 11,
+          "acli": {
+            "ms": 666.037,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 269.926,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 12,
+          "atlas": {
+            "ms": 313.327,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 651.723,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 13,
+          "acli": {
+            "ms": 910.061,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 293.934,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 14,
+          "atlas": {
+            "ms": 256.189,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 785.57,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 15,
+          "acli": {
+            "ms": 673.042,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 259.57,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 16,
+          "atlas": {
+            "ms": 270.975,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 696.654,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 17,
+          "acli": {
+            "ms": 873.78,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 261.879,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 18,
+          "atlas": {
+            "ms": 249.804,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 674.455,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 19,
+          "acli": {
+            "ms": 782.207,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 263.569,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 20,
+          "atlas": {
+            "ms": 313.801,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 631.131,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 21,
+          "acli": {
+            "ms": 769.432,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 315.592,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 22,
+          "atlas": {
+            "ms": 259.455,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 606.553,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 23,
+          "acli": {
+            "ms": 841.288,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 273.145,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 24,
+          "atlas": {
+            "ms": 231.526,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 830.13,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 25,
+          "acli": {
+            "ms": 844.519,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 265.845,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 26,
+          "atlas": {
+            "ms": 263.674,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 807.007,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 27,
+          "acli": {
+            "ms": 722.671,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 273.545,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 28,
+          "atlas": {
+            "ms": 248.158,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 821.86,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 29,
+          "acli": {
+            "ms": 680.698,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 273.575,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 30,
+          "atlas": {
+            "ms": 261.549,
+            "stdout_bytes": 577
+          },
+          "acli": {
+            "ms": 801.149,
+            "stdout_bytes": 1295
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 31,
+          "acli": {
+            "ms": 654.851,
+            "stdout_bytes": 1295
+          },
+          "atlas": {
+            "ms": 293.294,
+            "stdout_bytes": 577
+          },
+          "matched": true
+        }
+      ],
+      "mismatched_pairs": 0,
+      "summary": {
+        "atlas": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 263.62149999999997,
+          "p95_ms": 317.997,
+          "min_ms": 231.526,
+          "max_ms": 351.017,
+          "median_stdout_bytes": 577.0
+        },
+        "acli": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 711.1315,
+          "p95_ms": 873.78,
+          "min_ms": 606.553,
+          "max_ms": 910.061,
+          "median_stdout_bytes": 1295.0
+        }
+      }
+    },
+    {
+      "name": "Jira longer description",
+      "kind": "issue",
+      "fields": [
+        "key",
+        "summary",
+        "status",
+        "description"
+      ],
+      "samples": [
+        {
+          "phase": "warmup",
+          "iteration": 0,
+          "atlas": {
+            "ms": 253.378,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 808.742,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "warmup",
+          "iteration": 1,
+          "acli": {
+            "ms": 774.478,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 276.739,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 2,
+          "atlas": {
+            "ms": 250.222,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 781.766,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 3,
+          "acli": {
+            "ms": 678.828,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 334.202,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 4,
+          "atlas": {
+            "ms": 253.691,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 663.304,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 5,
+          "acli": {
+            "ms": 687.757,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 364.98,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 6,
+          "atlas": {
+            "ms": 248.569,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 663.118,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 7,
+          "acli": {
+            "ms": 642.337,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 267.111,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 8,
+          "atlas": {
+            "ms": 267.727,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 844.012,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 9,
+          "acli": {
+            "ms": 864.842,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 261.379,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 10,
+          "atlas": {
+            "ms": 245.603,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 751.38,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 11,
+          "acli": {
+            "ms": 681.859,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 314.056,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 12,
+          "atlas": {
+            "ms": 237.362,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 662.008,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 13,
+          "acli": {
+            "ms": 656.112,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 330.553,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 14,
+          "atlas": {
+            "ms": 253.07,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 811.313,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 15,
+          "acli": {
+            "ms": 868.858,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 290.957,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 16,
+          "atlas": {
+            "ms": 270.076,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 866.298,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 17,
+          "acli": {
+            "ms": 841.675,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 259.22,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 18,
+          "atlas": {
+            "ms": 246.217,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 819.681,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 19,
+          "acli": {
+            "ms": 949.446,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 273.128,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 20,
+          "atlas": {
+            "ms": 336.233,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 639.862,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 21,
+          "acli": {
+            "ms": 684.526,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 268.959,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 22,
+          "atlas": {
+            "ms": 255.824,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 861.632,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 23,
+          "acli": {
+            "ms": 995.537,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 358.983,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 24,
+          "atlas": {
+            "ms": 260.471,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 746.488,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 25,
+          "acli": {
+            "ms": 808.97,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 297.486,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 26,
+          "atlas": {
+            "ms": 277.357,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 818.498,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 27,
+          "acli": {
+            "ms": 981.919,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 281.851,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 28,
+          "atlas": {
+            "ms": 252.946,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 816.361,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 29,
+          "acli": {
+            "ms": 863.983,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 278.446,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 30,
+          "atlas": {
+            "ms": 232.403,
+            "stdout_bytes": 1389
+          },
+          "acli": {
+            "ms": 654.906,
+            "stdout_bytes": 3240
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 31,
+          "acli": {
+            "ms": 850.496,
+            "stdout_bytes": 3240
+          },
+          "atlas": {
+            "ms": 270.378,
+            "stdout_bytes": 1389
+          },
+          "matched": true
+        }
+      ],
+      "mismatched_pairs": 0,
+      "summary": {
+        "atlas": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 268.34299999999996,
+          "p95_ms": 358.983,
+          "min_ms": 232.403,
+          "max_ms": 364.98,
+          "median_stdout_bytes": 1389.0
+        },
+        "acli": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 810.1415,
+          "p95_ms": 981.919,
+          "min_ms": 639.862,
+          "max_ms": 995.537,
+          "median_stdout_bytes": 3240.0
+        }
+      }
+    },
+    {
+      "name": "Jira issue with comment",
+      "kind": "issue",
+      "fields": [
+        "key",
+        "summary",
+        "status",
+        "description",
+        "comment"
+      ],
+      "samples": [
+        {
+          "phase": "warmup",
+          "iteration": 0,
+          "atlas": {
+            "ms": 258.652,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 883.227,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "warmup",
+          "iteration": 1,
+          "acli": {
+            "ms": 867.452,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 328.078,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 2,
+          "atlas": {
+            "ms": 269.47,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 777.914,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 3,
+          "acli": {
+            "ms": 780.856,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 281.909,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 4,
+          "atlas": {
+            "ms": 310.132,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 786.877,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 5,
+          "acli": {
+            "ms": 844.72,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 283.861,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 6,
+          "atlas": {
+            "ms": 252.101,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 849.023,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 7,
+          "acli": {
+            "ms": 871.812,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 286.255,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 8,
+          "atlas": {
+            "ms": 230.608,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 680.334,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 9,
+          "acli": {
+            "ms": 644.683,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 283.442,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 10,
+          "atlas": {
+            "ms": 365.977,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 890.58,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 11,
+          "acli": {
+            "ms": 719.627,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 273.217,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 12,
+          "atlas": {
+            "ms": 272.315,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 808.934,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 13,
+          "acli": {
+            "ms": 896.44,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 272.864,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 14,
+          "atlas": {
+            "ms": 264.492,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 980.228,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 15,
+          "acli": {
+            "ms": 654.309,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 270.105,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 16,
+          "atlas": {
+            "ms": 267.038,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 716.921,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 17,
+          "acli": {
+            "ms": 785.424,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 267.047,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 18,
+          "atlas": {
+            "ms": 273.622,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 806.92,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 19,
+          "acli": {
+            "ms": 839.944,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 271.768,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 20,
+          "atlas": {
+            "ms": 261.785,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 925.511,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 21,
+          "acli": {
+            "ms": 888.664,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 281.273,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 22,
+          "atlas": {
+            "ms": 248.894,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 809.997,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 23,
+          "acli": {
+            "ms": 692.086,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 264.567,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 24,
+          "atlas": {
+            "ms": 261.268,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 823.223,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 25,
+          "acli": {
+            "ms": 659.143,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 276.257,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 26,
+          "atlas": {
+            "ms": 279.347,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 842.327,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 27,
+          "acli": {
+            "ms": 864.811,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 275.251,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 28,
+          "atlas": {
+            "ms": 267.313,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 667.513,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 29,
+          "acli": {
+            "ms": 716.89,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 260.579,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 30,
+          "atlas": {
+            "ms": 314.549,
+            "stdout_bytes": 3238
+          },
+          "acli": {
+            "ms": 848.725,
+            "stdout_bytes": 4807
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 31,
+          "acli": {
+            "ms": 850.267,
+            "stdout_bytes": 4807
+          },
+          "atlas": {
+            "ms": 272.732,
+            "stdout_bytes": 3238
+          },
+          "matched": true
+        }
+      ],
+      "mismatched_pairs": 0,
+      "summary": {
+        "atlas": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 272.5235,
+          "p95_ms": 314.549,
+          "min_ms": 230.608,
+          "max_ms": 365.977,
+          "median_stdout_bytes": 3238.0
+        },
+        "acli": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 809.4655,
+          "p95_ms": 925.511,
+          "min_ms": 644.683,
+          "max_ms": 980.228,
+          "median_stdout_bytes": 4807.0
+        }
+      }
+    },
+    {
+      "name": "JQL search (1 rows)",
+      "kind": "search",
+      "fields": [
+        "key",
+        "summary",
+        "status"
+      ],
+      "limit": 1,
+      "count": 1,
+      "samples": [
+        {
+          "phase": "warmup",
+          "iteration": 0,
+          "atlas": {
+            "ms": 345.639,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 931.543,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "warmup",
+          "iteration": 1,
+          "acli": {
+            "ms": 919.637,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 360.771,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 2,
+          "atlas": {
+            "ms": 292.014,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 1158.504,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 3,
+          "acli": {
+            "ms": 1111.789,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 500.21,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 4,
+          "atlas": {
+            "ms": 320.978,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 1003.506,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 5,
+          "acli": {
+            "ms": 1131.938,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 324.038,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 6,
+          "atlas": {
+            "ms": 319.911,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 904.916,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 7,
+          "acli": {
+            "ms": 1008.915,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 339.104,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 8,
+          "atlas": {
+            "ms": 290.354,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 1033.893,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 9,
+          "acli": {
+            "ms": 1094.23,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 445.524,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 10,
+          "atlas": {
+            "ms": 393.287,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 893.658,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 11,
+          "acli": {
+            "ms": 1109.241,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 314.656,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 12,
+          "atlas": {
+            "ms": 302.506,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 959.806,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 13,
+          "acli": {
+            "ms": 1097.333,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 370.966,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 14,
+          "atlas": {
+            "ms": 321.508,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 1037.74,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 15,
+          "acli": {
+            "ms": 1114.92,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 341.407,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 16,
+          "atlas": {
+            "ms": 365.447,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 959.317,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 17,
+          "acli": {
+            "ms": 1052.142,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 348.977,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 18,
+          "atlas": {
+            "ms": 322.607,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 952.16,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 19,
+          "acli": {
+            "ms": 1159.986,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 331.594,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 20,
+          "atlas": {
+            "ms": 340.859,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 974.094,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 21,
+          "acli": {
+            "ms": 1019.585,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 330.789,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 22,
+          "atlas": {
+            "ms": 339.564,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 878.869,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 23,
+          "acli": {
+            "ms": 1086.816,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 352.153,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 24,
+          "atlas": {
+            "ms": 312.771,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 1072.276,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 25,
+          "acli": {
+            "ms": 1032.195,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 315.226,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 26,
+          "atlas": {
+            "ms": 296.573,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 859.902,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 27,
+          "acli": {
+            "ms": 1105.351,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 333.605,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 28,
+          "atlas": {
+            "ms": 321.951,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 1066.898,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 29,
+          "acli": {
+            "ms": 1037.264,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 333.112,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 30,
+          "atlas": {
+            "ms": 344.651,
+            "stdout_bytes": 604
+          },
+          "acli": {
+            "ms": 854.84,
+            "stdout_bytes": 1170
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 31,
+          "acli": {
+            "ms": 1187.119,
+            "stdout_bytes": 1170
+          },
+          "atlas": {
+            "ms": 322.619,
+            "stdout_bytes": 604
+          },
+          "matched": true
+        }
+      ],
+      "mismatched_pairs": 0,
+      "summary": {
+        "atlas": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 331.1915,
+          "p95_ms": 445.524,
+          "min_ms": 290.354,
+          "max_ms": 500.21,
+          "median_stdout_bytes": 604.0
+        },
+        "acli": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 1037.502,
+          "p95_ms": 1159.986,
+          "min_ms": 854.84,
+          "max_ms": 1187.119,
+          "median_stdout_bytes": 1170.0
+        }
+      }
+    },
+    {
+      "name": "JQL search (10 rows)",
+      "kind": "search",
+      "fields": [
+        "key",
+        "summary",
+        "status"
+      ],
+      "limit": 10,
+      "count": 10,
+      "samples": [
+        {
+          "phase": "warmup",
+          "iteration": 0,
+          "atlas": {
+            "ms": 295.981,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 1211.366,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "warmup",
+          "iteration": 1,
+          "acli": {
+            "ms": 1116.28,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 332.501,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 2,
+          "atlas": {
+            "ms": 375.76,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 1105.819,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 3,
+          "acli": {
+            "ms": 1150.735,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 309.712,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 4,
+          "atlas": {
+            "ms": 311.064,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 1011.339,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 5,
+          "acli": {
+            "ms": 883.042,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 333.25,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 6,
+          "atlas": {
+            "ms": 304.759,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 871.903,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 7,
+          "acli": {
+            "ms": 947.276,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 324.497,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 8,
+          "atlas": {
+            "ms": 319.053,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 974.074,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 9,
+          "acli": {
+            "ms": 854.153,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 350.0,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 10,
+          "atlas": {
+            "ms": 376.617,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 1037.282,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 11,
+          "acli": {
+            "ms": 1114.844,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 343.366,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 12,
+          "atlas": {
+            "ms": 295.666,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 878.17,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 13,
+          "acli": {
+            "ms": 859.577,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 298.316,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 14,
+          "atlas": {
+            "ms": 337.647,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 847.256,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 15,
+          "acli": {
+            "ms": 1057.41,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 360.008,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 16,
+          "atlas": {
+            "ms": 295.509,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 863.937,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 17,
+          "acli": {
+            "ms": 925.718,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 312.282,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 18,
+          "atlas": {
+            "ms": 329.234,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 878.794,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 19,
+          "acli": {
+            "ms": 879.913,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 307.454,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 20,
+          "atlas": {
+            "ms": 333.946,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 900.761,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 21,
+          "acli": {
+            "ms": 925.889,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 321.789,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 22,
+          "atlas": {
+            "ms": 356.833,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 1079.482,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 23,
+          "acli": {
+            "ms": 891.623,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 342.883,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 24,
+          "atlas": {
+            "ms": 314.29,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 897.164,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 25,
+          "acli": {
+            "ms": 1133.653,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 300.135,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 26,
+          "atlas": {
+            "ms": 319.664,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 918.152,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 27,
+          "acli": {
+            "ms": 962.281,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 321.179,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 28,
+          "atlas": {
+            "ms": 408.362,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 1124.356,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 29,
+          "acli": {
+            "ms": 988.426,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 346.574,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 30,
+          "atlas": {
+            "ms": 380.076,
+            "stdout_bytes": 4586
+          },
+          "acli": {
+            "ms": 1014.849,
+            "stdout_bytes": 11010
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 31,
+          "acli": {
+            "ms": 1152.761,
+            "stdout_bytes": 11010
+          },
+          "atlas": {
+            "ms": 316.202,
+            "stdout_bytes": 4586
+          },
+          "matched": true
+        }
+      ],
+      "mismatched_pairs": 0,
+      "summary": {
+        "atlas": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 323.14300000000003,
+          "p95_ms": 380.076,
+          "min_ms": 295.509,
+          "max_ms": 408.362,
+          "median_stdout_bytes": 4586.0
+        },
+        "acli": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 936.5825,
+          "p95_ms": 1150.735,
+          "min_ms": 847.256,
+          "max_ms": 1152.761,
+          "median_stdout_bytes": 11010.0
+        }
+      }
+    },
+    {
+      "name": "JQL search (16 rows)",
+      "kind": "search",
+      "fields": [
+        "key",
+        "summary",
+        "status"
+      ],
+      "limit": 16,
+      "count": 16,
+      "samples": [
+        {
+          "phase": "warmup",
+          "iteration": 0,
+          "atlas": {
+            "ms": 346.879,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1179.727,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "warmup",
+          "iteration": 1,
+          "acli": {
+            "ms": 1347.016,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 343.412,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 2,
+          "atlas": {
+            "ms": 311.93,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1252.824,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 3,
+          "acli": {
+            "ms": 1028.726,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 309.799,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 4,
+          "atlas": {
+            "ms": 344.67,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 967.823,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 5,
+          "acli": {
+            "ms": 1151.419,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 320.179,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 6,
+          "atlas": {
+            "ms": 325.337,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1095.888,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 7,
+          "acli": {
+            "ms": 962.084,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 458.838,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 8,
+          "atlas": {
+            "ms": 376.406,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1196.938,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 9,
+          "acli": {
+            "ms": 974.15,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 333.982,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 10,
+          "atlas": {
+            "ms": 350.42,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1117.846,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 11,
+          "acli": {
+            "ms": 933.01,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 311.675,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 12,
+          "atlas": {
+            "ms": 337.958,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1104.642,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 13,
+          "acli": {
+            "ms": 990.635,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 332.646,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 14,
+          "atlas": {
+            "ms": 300.9,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1302.009,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 15,
+          "acli": {
+            "ms": 1016.591,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 321.37,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 16,
+          "atlas": {
+            "ms": 305.695,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1148.637,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 17,
+          "acli": {
+            "ms": 964.33,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 318.734,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 18,
+          "atlas": {
+            "ms": 332.533,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1219.867,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 19,
+          "acli": {
+            "ms": 1268.699,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 353.097,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 20,
+          "atlas": {
+            "ms": 380.891,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 971.96,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 21,
+          "acli": {
+            "ms": 1027.869,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 341.295,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 22,
+          "atlas": {
+            "ms": 324.214,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1133.757,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 23,
+          "acli": {
+            "ms": 1180.733,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 345.4,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 24,
+          "atlas": {
+            "ms": 346.592,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 979.423,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 25,
+          "acli": {
+            "ms": 953.306,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 301.698,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 26,
+          "atlas": {
+            "ms": 316.72,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1197.452,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 27,
+          "acli": {
+            "ms": 1187.0,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 324.959,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 28,
+          "atlas": {
+            "ms": 388.029,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1069.205,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 29,
+          "acli": {
+            "ms": 941.733,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 401.199,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 30,
+          "atlas": {
+            "ms": 298.103,
+            "stdout_bytes": 7274
+          },
+          "acli": {
+            "ms": 1085.486,
+            "stdout_bytes": 17604
+          },
+          "matched": true
+        },
+        {
+          "phase": "measured",
+          "iteration": 31,
+          "acli": {
+            "ms": 894.088,
+            "stdout_bytes": 17604
+          },
+          "atlas": {
+            "ms": 407.179,
+            "stdout_bytes": 7274
+          },
+          "matched": true
+        }
+      ],
+      "mismatched_pairs": 0,
+      "summary": {
+        "atlas": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 332.58950000000004,
+          "p95_ms": 407.179,
+          "min_ms": 298.103,
+          "max_ms": 458.838,
+          "median_stdout_bytes": 7274.0
+        },
+        "acli": {
+          "attempted": 30,
+          "failed": 0,
+          "matched": 30,
+          "n": 30,
+          "median_ms": 1077.3455,
+          "p95_ms": 1268.699,
+          "min_ms": 894.088,
+          "max_ms": 1302.009,
+          "median_stdout_bytes": 17604.0
+        }
+      }
+    }
+  ],
+  "status": "complete"
+}

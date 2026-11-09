@@ -34,3 +34,85 @@ Sources for the documented Jira features include the [ACLI command reference](ht
 and [changelog](https://developer.atlassian.com/cloud/acli/changelog/).
 The Confluence inventory comes from the installed binary's
 `acli confluence --help` tree.
+
+## Live Jira benchmark
+
+On November 8, 2026 (Pacific time), we compared a preview build of Atlas 0.4.1
+with ACLI 1.3.40-stable on one Atlassian Cloud site from an Apple M3 Max Mac.
+Atlas used an API token and ACLI used OAuth. The timed interval covers CLI
+startup, the authenticated request path, and capture of the JSON output.
+
+| Jira workload | Atlas p50 / p95 (ms) | ACLI p50 / p95 (ms) | Atlas / ACLI stdout (median bytes) |
+| --- | ---: | ---: | ---: |
+| Issue metadata | 283.5 / 361.9 | 838.8 / 916.0 | 440 / 1,005 |
+| Issue with a short description | 263.6 / 318.0 | 711.1 / 873.8 | 577 / 1,295 |
+| Issue with a longer description | 268.3 / 359.0 | 810.1 / 981.9 | 1,389 / 3,240 |
+| Issue with a comment | 272.5 / 314.5 | 809.5 / 925.5 | 3,238 / 4,807 |
+| JQL search, 1 row | 331.2 / 445.5 | 1,037.5 / 1,160.0 | 604 / 1,170 |
+| JQL search, 10 rows | 323.1 / 380.1 | 936.6 / 1,150.7 | 4,586 / 11,010 |
+| JQL search, 16 rows | 332.6 / 407.2 | 1,077.3 / 1,268.7 | 7,274 / 17,604 |
+
+Across these cases, Atlas had 63–69% lower median latency and 33–59% fewer
+JSON stdout bytes. All 210 measured pairs matched and all 420 commands
+succeeded. Each workload used two warm-up pairs, followed by 30 measured
+pairs with the execution order alternating.
+
+We checked issue IDs, keys, requested fields, and the order of search
+results. Status was compared by ID and name. Descriptions were compared as
+ADF, and the comment case checked the total plus comment IDs, ADF bodies, and
+timestamps. The two descriptions had 25 and 398 rendered characters, the
+comment case contained one comment, and the search matched 16 visible issues.
+Byte counts include each CLI's native JSON envelope and whitespace.
+
+The measured Atlas tree combined [the JSON output change](https://github.com/edison-cc/atlas/commit/e011e0f6cfb49fd2254676a8c997ef00e70af9c4)
+with [the startup and benchmark change](https://github.com/edison-cc/atlas/commit/be69a152c85ae9664148e034ea9670c730f625a5).
+The [anonymized report](results/atlas-acli-2026-11-08.json) records the exact
+tree ID and individual samples. The scope is Jira reads on one site, with the
+tools' configured authentication and request paths. Confluence timings require
+a separate ACLI Confluence login. The run did not instrument HTTP request
+counts.
+
+## Reproduce the comparison
+
+Use an Atlas build with schema version 1 JSON output and an ACLI build signed
+in to the same Jira site. Set the same requested fields on both sides. If Atlas
+is configured to append custom fields to issue reads, include those field IDs
+in the case too.
+
+Create a local JSON file with your own fixture identifiers. For example, this
+manifest expects the first ten results of a stable query in a test project.
+
+```json
+[
+  {
+    "name": "Issue with description",
+    "kind": "issue",
+    "key": "DEMO-1",
+    "fields": ["key", "summary", "status", "description"]
+  },
+  {
+    "name": "JQL search (10 rows)",
+    "kind": "search",
+    "jql": "project = DEMO ORDER BY key ASC",
+    "fields": ["key", "summary", "status"],
+    "limit": 10,
+    "count": 10
+  }
+]
+```
+
+Use `comment` in the issue's field list to compare embedded comments. For a
+Confluence read, use `{"name": "Confluence page", "kind": "page", "id": "123456"}`
+and sign ACLI in to Confluence separately. The runner compares the page ID,
+title, and storage body.
+
+```bash
+python -m benchmarks.benchmark_acli --cases /path/to/local-cases.json \
+  --atlas /path/to/atlas --atlas-revision "$(git rev-parse HEAD)" \
+  --acli acli --output /tmp/atlas-acli.json
+```
+
+Use the source revision of the Atlas executable you actually pass. The runner
+saves timings, output byte counts, labels, and match status. It leaves issue
+keys, page IDs, JQL, and response contents in memory. Use generic case labels
+if the report will be shared.
