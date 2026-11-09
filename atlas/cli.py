@@ -4,12 +4,12 @@ import argparse
 import sys
 from collections import defaultdict
 
-from requests import HTTPError
+from requests import RequestException
 
 from atlas import __version__
 from atlas.commands import discover_commands
 from atlas.config import load_config
-from atlas.client import AtlassianClient
+from atlas.client import AtlassianClient, request_error_message
 
 
 def main():
@@ -58,9 +58,8 @@ def main():
 
     try:
         args.func(args, AtlassianClient(load_config()))
-    except HTTPError as error:
-        print(error, file=sys.stderr)
-        sys.exit(1)
+    except RequestException as error:
+        sys.exit(request_error_message(error))
 
 
 if __name__ == "__main__":

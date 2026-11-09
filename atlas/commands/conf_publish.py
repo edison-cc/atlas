@@ -17,6 +17,8 @@ from pathlib import Path
 
 from requests import HTTPError, RequestException
 
+from atlas.client import request_error_message
+
 
 class PublishError(Exception):
     """A local validation or publication failure."""
@@ -50,7 +52,8 @@ def run(args, client):
             return
         _publish(args, client, storage_content, attachments, uploaded)
     except (PublishError, RequestException, OSError, UnicodeError) as error:
-        print(f"Publish failed: {error}", file=sys.stderr)
+        message = request_error_message(error) if isinstance(error, RequestException) else str(error)
+        print(f"Publish failed: {message}", file=sys.stderr)
         if uploaded:
             print(f"Attachments uploaded before failure: {', '.join(uploaded)}", file=sys.stderr)
         sys.exit(1)

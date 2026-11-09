@@ -1,6 +1,39 @@
 """HTTP client for Jira and Confluence Cloud REST APIs."""
 
+from time import sleep
+
 import requests
+
+
+def request_error_message(error: requests.RequestException) -> str:
+    if isinstance(error, requests.Timeout):
+        return "Atlassian request timed out."
+    if isinstance(error, requests.ConnectionError):
+        return "Could not connect to Atlassian. Check your connection and configured site URL."
+    if isinstance(error, requests.JSONDecodeError):
+        return "Atlassian returned an invalid JSON response."
+    if not isinstance(error, requests.HTTPError) or error.response is None:
+        return "Atlassian request failed."
+
+    response = error.response
+    if response.status_code == 401:
+        return "API error (401): Atlassian rejected the credentials. Check the email, token, and site URL."
+    if response.status_code == 403:
+        return f"{error}\nCheck that the account can access this Atlassian resource."
+    if response.status_code == 409:
+        return f"{error}\nReview the latest resource before trying again."
+    if response.status_code == 429:
+        seconds = _retry_after(response)
+        wait = f" Wait at least {seconds} seconds before trying again." if seconds is not None else ""
+        return f"API error (429): Atlassian rate limit reached.{wait}"
+    return str(error)
+
+
+def _retry_after(response) -> int | None:
+    value = response.headers.get("Retry-After", "")
+    if value.isascii() and value.isdecimal() and len(value) <= 10:
+        return int(value)
+    return None
 
 
 class AtlassianClient:
@@ -55,6 +88,12 @@ class AtlassianClient:
         url = f"{self.base_url}{path}"
         kwargs.setdefault("timeout", 30)
         resp = self.session.request(method, url, **kwargs)
+        read_only = method == "GET" or (method == "POST" and path == "/rest/api/3/search/jql")
+        if read_only and resp.status_code in (429, 503):
+            seconds = _retry_after(resp)
+            if seconds is not None and seconds <= 5:
+                sleep(seconds)
+                resp = self.session.request(method, url, **kwargs)
         if not resp.ok:
             raise requests.HTTPError(f"API error ({resp.status_code}): {resp.text}", response=resp)
         if resp.status_code == 204:

@@ -14,6 +14,7 @@ Configuration lives in `~/.config/atlas/config.json` or in `ATLASSIAN_EMAIL`, `A
 ```bash
 python tests/test_conf_publish.py
 python tests/test_config.py
+python tests/test_request_errors.py
 python tests/test_jira_get.py
 python tests/test_benchmarks.py
 ```
