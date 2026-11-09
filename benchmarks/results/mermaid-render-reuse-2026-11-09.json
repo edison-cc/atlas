@@ -1,0 +1,336 @@
+{
+  "started_at_utc": "2026-11-09T08:05:40.299296+00:00",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.12.13",
+  "mermaid_cli": "12.2.0",
+  "browser": "Google Chrome 156.0.8078.80",
+  "revisions": {
+    "baseline": "d80482167808ef2be7ef3a86a376aff729f58b86",
+    "candidate": "dd05bd33e05ada2d89a99004b4e85c4964948ca7"
+  },
+  "runs": 10,
+  "warmup": 1,
+  "cases": {
+    "repeated": {
+      "diagram_blocks": 4,
+      "unique_sources": 2,
+      "samples": [
+        {
+          "phase": "warmup",
+          "baseline": {
+            "ms": 3341.238,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 1642.082,
+            "renders": 2
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "candidate": {
+            "ms": 1630.856,
+            "renders": 2
+          },
+          "baseline": {
+            "ms": 3234.854,
+            "renders": 4
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "baseline": {
+            "ms": 3213.582,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 1673.495,
+            "renders": 2
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "candidate": {
+            "ms": 1637.781,
+            "renders": 2
+          },
+          "baseline": {
+            "ms": 3246.256,
+            "renders": 4
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "baseline": {
+            "ms": 3247.085,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 1682.308,
+            "renders": 2
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "candidate": {
+            "ms": 1665.421,
+            "renders": 2
+          },
+          "baseline": {
+            "ms": 3219.701,
+            "renders": 4
+          },
+          "identical_preview": false
+        },
+        {
+          "phase": "measured",
+          "baseline": {
+            "ms": 3312.922,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 1690.124,
+            "renders": 2
+          },
+          "identical_preview": false
+        },
+        {
+          "phase": "measured",
+          "candidate": {
+            "ms": 1687.291,
+            "renders": 2
+          },
+          "baseline": {
+            "ms": 3247.817,
+            "renders": 4
+          },
+          "identical_preview": false
+        },
+        {
+          "phase": "measured",
+          "baseline": {
+            "ms": 3340.676,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 1666.349,
+            "renders": 2
+          },
+          "identical_preview": false
+        },
+        {
+          "phase": "measured",
+          "candidate": {
+            "ms": 1682.147,
+            "renders": 2
+          },
+          "baseline": {
+            "ms": 3330.248,
+            "renders": 4
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "baseline": {
+            "ms": 3266.915,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 1679.95,
+            "renders": 2
+          },
+          "identical_preview": false
+        }
+      ],
+      "summary": {
+        "baseline": {
+          "n": 10,
+          "median_ms": 3247.451,
+          "p95_ms": 3340.676,
+          "min_ms": 3213.582,
+          "max_ms": 3340.676,
+          "renders_per_run": [
+            4
+          ]
+        },
+        "candidate": {
+          "n": 10,
+          "median_ms": 1676.7224999999999,
+          "p95_ms": 1690.124,
+          "min_ms": 1630.856,
+          "max_ms": 1690.124,
+          "renders_per_run": [
+            2
+          ]
+        }
+      }
+    },
+    "distinct": {
+      "diagram_blocks": 4,
+      "unique_sources": 4,
+      "samples": [
+        {
+          "phase": "warmup",
+          "baseline": {
+            "ms": 3419.001,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 3495.107,
+            "renders": 4
+          },
+          "identical_preview": false
+        },
+        {
+          "phase": "measured",
+          "candidate": {
+            "ms": 3433.49,
+            "renders": 4
+          },
+          "baseline": {
+            "ms": 3557.819,
+            "renders": 4
+          },
+          "identical_preview": false
+        },
+        {
+          "phase": "measured",
+          "baseline": {
+            "ms": 3477.639,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 3435.938,
+            "renders": 4
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "candidate": {
+            "ms": 3493.104,
+            "renders": 4
+          },
+          "baseline": {
+            "ms": 3435.675,
+            "renders": 4
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "baseline": {
+            "ms": 3426.889,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 3495.283,
+            "renders": 4
+          },
+          "identical_preview": false
+        },
+        {
+          "phase": "measured",
+          "candidate": {
+            "ms": 3446.418,
+            "renders": 4
+          },
+          "baseline": {
+            "ms": 3553.231,
+            "renders": 4
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "baseline": {
+            "ms": 3483.059,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 3457.32,
+            "renders": 4
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "candidate": {
+            "ms": 3427.751,
+            "renders": 4
+          },
+          "baseline": {
+            "ms": 3408.203,
+            "renders": 4
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "baseline": {
+            "ms": 3440.829,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 3456.735,
+            "renders": 4
+          },
+          "identical_preview": true
+        },
+        {
+          "phase": "measured",
+          "candidate": {
+            "ms": 3497.929,
+            "renders": 4
+          },
+          "baseline": {
+            "ms": 3459.345,
+            "renders": 4
+          },
+          "identical_preview": false
+        },
+        {
+          "phase": "measured",
+          "baseline": {
+            "ms": 3453.388,
+            "renders": 4
+          },
+          "candidate": {
+            "ms": 3492.014,
+            "renders": 4
+          },
+          "identical_preview": false
+        }
+      ],
+      "summary": {
+        "baseline": {
+          "n": 10,
+          "median_ms": 3456.3665,
+          "p95_ms": 3557.819,
+          "min_ms": 3408.203,
+          "max_ms": 3557.819,
+          "renders_per_run": [
+            4
+          ]
+        },
+        "candidate": {
+          "n": 10,
+          "median_ms": 3457.0275,
+          "p95_ms": 3497.929,
+          "min_ms": 3427.751,
+          "max_ms": 3497.929,
+          "renders_per_run": [
+            4
+          ]
+        }
+      }
+    }
+  },
+  "hardware": "Apple M3 Max"
+}

@@ -92,6 +92,45 @@ These are subprocess and gateway tool-call durations, excluding agent scheduling
 shell sandbox overhead and model inference. Do not label them end-to-end agent
 latency. Do not infer individual container/protocol phase costs from total timings.
 
+## Local Mermaid rendering
+
+Compare clean Atlas source checkouts using the same Python environment, Mermaid
+CLI on `PATH`, and Chrome or Chromium executable. The runner generates two
+four-diagram Markdown documents. One repeats two diagram sources, and the
+other uses four distinct sources. Each run starts a new Atlas process and times
+`conf publish --dry-run --json`, including browser-backed PNG rendering.
+
+```bash
+git worktree add --detach /tmp/atlas-mermaid-before d804821
+python -m benchmarks.benchmark_mermaid \
+  --baseline /tmp/atlas-mermaid-before \
+  --browser /path/to/chrome \
+  --output /tmp/atlas-mermaid.json
+```
+
+The runner alternates execution order and uses one warm-up pair and ten
+measured pairs per workload by default. It counts render starts from Atlas
+stderr and checks that each preview preserves four image references and lists
+the attachments those references use. The candidate must reuse one attachment
+per identical source. The runner compares preview structure with attachment
+filenames replaced and records exact JSON equality separately. The browser can
+produce different PNG bytes when rerendering the same source, which changes
+the content-addressed filenames. The measured path is local and requires no
+Atlassian credentials.
+
+On November 9, 2026 (Pacific time), an Apple M3 Max running Mermaid CLI 12.2.0
+and Chrome 156.0.8078.80 produced the following offline preview timings.
+
+| Document | Baseline p50 / p95 (s) | With reuse p50 / p95 (s) | Renderer starts |
+| --- | ---: | ---: | ---: |
+| Four blocks, two repeated sources | 3.247 / 3.341 | 1.677 / 1.690 | 4 → 2 |
+| Four distinct sources | 3.456 / 3.558 | 3.457 / 3.498 | 4 → 4 |
+
+All 20 measured pairs passed the structure and reference checks. Exact JSON
+matched in 5 of 10 repeated-source pairs and 6 of 10 distinct-source pairs.
+The [raw report](results/mermaid-render-reuse-2026-11-09.json) includes both
+source revisions, render counts, and individual timings.
+
 ## Output size
 
 Save the exact successful Atlas/MCP outputs for the same synthetic cases. Include

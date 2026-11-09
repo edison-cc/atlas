@@ -254,9 +254,15 @@ atlas conf --help  # list commands
 ```
 
 For documents with Mermaid, install [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli)
-(`mmdc`) and configure its browser. Both preview and publish render every diagram
-locally. `--dry-run` prints the target page ID, title, attachment names, and
+(`mmdc`) and configure its browser. Each preview or publish command renders
+each distinct Mermaid source once locally and keeps every reference in the
+document. `--dry-run` prints the target page ID, title, attachment names, and
 Confluence storage markup without Atlassian credentials or API calls.
+
+In the [local Mermaid benchmark](benchmarks/README.md#local-mermaid-rendering),
+a four-diagram preview with two repeated sources went from **3.25 s to
+1.68 s** median and from four renderer starts to two. The four-distinct-diagram
+control took about 3.46 s in both versions.
 
 Use `--diff` to read the current page and compare its title and storage markup
 with the rendered local document. The preview lists proposed attachment names

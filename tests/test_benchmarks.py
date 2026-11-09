@@ -10,7 +10,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from benchmarks import benchmark_acli
+from benchmarks import benchmark_acli, benchmark_mermaid
 from benchmarks.benchmark_latency import fmt_stats, load_cases, run_cli, run_mcp
 from benchmarks.benchmark_output import compare
 
@@ -67,6 +67,24 @@ class BenchmarkTests(unittest.TestCase):
                 path.write_text(json.dumps(cases))
                 with self.assertRaises(ValueError):
                     load_cases(path)
+
+    def test_mermaid_preview_comparison_accepts_png_variation_and_checks_reuse(self):
+        def preview(refs):
+            storage = "\n".join(f'<ri:attachment ri:filename="{name}" />' for name in refs)
+            return {"attachments": list(dict.fromkeys(refs)), "body": {"format": "storage", "value": storage}}
+
+        diagrams = (0, 1, 0)
+        baseline = preview(["first.png", "second.png", "first-rerender.png"])
+        candidate = preview(["first.png", "second.png", "first.png"])
+        structure = benchmark_mermaid.preview_structure
+        self.assertEqual(
+            structure(baseline, diagrams, reused=False),
+            structure(candidate, diagrams, reused=True),
+        )
+        with self.assertRaisesRegex(ValueError, "share one attachment"):
+            structure(baseline, diagrams, reused=True)
+        with self.assertRaisesRegex(ValueError, "preserve all diagram references"):
+            structure(preview(["first.png", "second.png"]), diagrams, reused=True)
 
     def test_output_counts_unicode_and_negative_reduction(self):
         with tempfile.TemporaryDirectory() as directory:
