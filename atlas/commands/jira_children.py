@@ -11,7 +11,7 @@ def register(subparser):
     p.add_argument("--depth", type=int, default=2,
                     help="Max recursion depth (default: 2)")
     p.add_argument("--limit", type=int, default=100,
-                    help="Max results per query (default: 100)")
+                    help="Max results per Jira request (default: 100)")
     p.set_defaults(func=run)
 
 
@@ -52,29 +52,45 @@ def run(args, client):
 
 
 def _collect_children(client, parent_keys, depth, limit, sp_field):
-    """BFS traversal: fetch children of parent_keys, recurse up to depth levels."""
-    if depth <= 0 or not parent_keys:
-        return []
-
-    keys_csv = ", ".join(parent_keys)
-    jql = f"parent in ({keys_csv}) ORDER BY key ASC"
-    api_fields = "key,summary,status,assignee,parent"
+    """Read every page in each level before moving down to its children."""
+    fields = ["key", "summary", "status", "assignee", "parent"]
     if sp_field:
-        api_fields = f"{api_fields},{sp_field}"
+        fields.append(sp_field)
 
-    data = client.jira_get("search/jql", params={
-        "jql": jql,
-        "fields": api_fields,
-        "maxResults": limit,
-    })
-    issues = data.get("issues", [])
+    issues = []
+    seen_keys = set(parent_keys)
+    for _ in range(depth):
+        if not parent_keys:
+            break
+        keys_csv = ", ".join(parent_keys)
+        query = {
+            "jql": f"parent in ({keys_csv}) ORDER BY key ASC",
+            "fields": fields,
+            "maxResults": limit,
+        }
+        parent_keys = []
+        for issue in _iter_search_issues(client, query):
+            key = issue["key"]
+            if key not in seen_keys:
+                seen_keys.add(key)
+                parent_keys.append(key)
+                issues.append(issue)
+    return issues
 
-    if not issues:
-        return []
 
-    child_keys = [i["key"] for i in issues]
-    grandchildren = _collect_children(client, child_keys, depth - 1, limit, sp_field)
-    return issues + grandchildren
+def _iter_search_issues(client, query):
+    seen = set()
+    while True:
+        # A wide level can produce more JQL than fits in a GET URL.
+        page = client.jira_post("search/jql", json_body=query)
+        yield from page.get("issues") or []
+        token = page.get("nextPageToken")
+        if page.get("isLast") is True or (not token and page.get("isLast") is not False):
+            return
+        if not token or token in seen:
+            raise SystemExit("Jira returned an invalid pagination token. Results are incomplete.")
+        seen.add(token)
+        query = {**query, "nextPageToken": token}
 
 
 def _name(obj):

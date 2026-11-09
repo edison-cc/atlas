@@ -8,42 +8,60 @@ Compact Jira and Confluence CLI for terminals and AI coding agents.
 
 ## Why atlas?
 
-Atlas calls Atlassian Cloud REST APIs directly from a local Python process. It
-provides a small command surface for common Jira and Confluence workflows, with
-help available at every command level.
+Use Atlas to read a Jira issue in your terminal, keep the design document in Git,
+and publish the document and its Mermaid diagrams to Confluence. Atlas calls
+Atlassian Cloud REST APIs directly.
 
-### Benchmark snapshot
+After setup, run `atlas jira get PROJ-123` with your issue key. Save this
+example as `design.md` and install [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli)
+to try the publish preview.
 
-[![Historical March 2026 comparison: reported output totals of 6,421 vs 2,597 characters (59.6% smaller), and sums of per-operation median execution times of 26,653 vs 2,082 ms (12.8× ratio). Unverified historical results; original samples unavailable.](benchmarks/comparison.svg)](benchmarks/README.md)
+````markdown
+# Design
 
-These **historical March 2026 observations** compare one five-operation workload
-against an ephemeral Docker MCP setup. They are not verified current-release
-results or end-to-end agent timings. Output is measured in reported characters,
-not actual tokens.
+The worker reads jobs from the queue.
 
-[Output details](benchmarks/OUTPUT.md) · [Latency details](benchmarks/LATENCY.md) ·
-[Reproduce new measurements](benchmarks/README.md)
+```mermaid
+flowchart LR
+    Queue --> Worker
+```
+````
+
+```bash
+atlas conf publish 12345678 design.md --title "Design" --dry-run
+```
+
+The preview shows the page ID, rendered attachment name, and converted page
+body. To publish, use an existing Confluence page ID and omit `--dry-run`.
+
+### Atlas vs. Atlassian CLI
+
+In seven matched live Jira read cases, Atlas had **63–69% lower median latency**
+and **33–59% fewer JSON stdout bytes** than ACLI 1.3.40. In two matched
+Confluence page reads, Atlas had **74–77% lower median latency** and **29–38%
+fewer JSON stdout bytes**. Each case had 30 matched pairs on the same Mac and
+Atlassian Cloud site. Atlas used an API token and ACLI used OAuth.
+
+[![Median command latency for four matched Jira and Confluence reads. Atlas ranged from 231 to 333 ms and ACLI ranged from 809 to 1,077 ms.](benchmarks/acli-comparison.svg)](benchmarks/ACLI.md)
 
 <details>
-<summary>Measurement limits and previous claims</summary>
+<summary>View exact p50 and p95 values for the charted cases</summary>
 
-The original raw samples and complete environment versions are unavailable, and
-the original timing script did not reject failed requests. New measurements must
-use the validated runner described in [the benchmark protocol](benchmarks/README.md).
-The displayed ratio uses the original reported totals; the rounded latency rows
-sum to slightly different values, as explained in [the latency notes](benchmarks/LATENCY.md).
-Smaller output also needs a content-preservation check; byte counts alone do not
-establish usefulness.
-
-The old raw API totals give an arithmetic reduction of about 94%, not 96%, but
-raw baselines are missing for two operations, so this is not a matched-workload
-comparison and is not retained as a headline.
-
-The former “121x less context” headline compared 73 complete MCP schemas with a
-routing rule describing 12 operations. It does not measure equivalent functionality
-or actual agent context consumption. See [schema methodology](benchmarks/SCHEMA.md).
+| Workload | Atlas p50 / p95 | ACLI p50 / p95 |
+| --- | ---: | ---: |
+| Jira issue with a comment | 273 / 315 ms | 809 / 926 ms |
+| Jira JQL search, 16 rows | 333 / 407 ms | 1,077 / 1,269 ms |
+| Confluence page, 2.2 KB storage body | 261 / 326 ms | 990 / 1,153 ms |
+| Confluence page, 16.3 KB storage body | 231 / 285 ms | 1,016 / 1,188 ms |
 
 </details>
+
+ACLI covers more Jira and Confluence operations in its visible command tree
+(70 command names versus 16), including Jira bulk actions and Confluence
+space and blog management. Atlas provides dedicated Jira hierarchy commands
+and a one-command Markdown and Mermaid publishing workflow for Confluence.
+See the [full comparison and raw samples](benchmarks/ACLI.md) and the
+[benchmark protocol](benchmarks/README.md).
 
 ## Quick Start
 
@@ -186,9 +204,19 @@ curl -fsSL https://raw.githubusercontent.com/edison-cc/atlas/main/.github/copilo
 
 Atlas also works as a standalone terminal CLI without any editor integration.
 
+Add `--json` to Jira `get` and `search`, or Confluence `get`, `search`, and
+`tree`, to get a single JSON object with `schema_version: 1`. Jira JSON preserves
+the values returned for the requested fields, including custom fields. Searches
+include `items` and `pagination` with `returned`, `total` (null when unknown),
+and `has_more`. Confluence `get --json --format storage` puts the original
+markup in `body.value`. Tree JSON applies `--depth` to `roots` and `detached`,
+and reports the number of pages loaded as `fetched_count`.
+
 ### Jira
 
 Jira rejects a search with no restriction, such as `order by created DESC`. Include a project, updated date, or other clause.
+Search shows whether more results are available. For `jira children`, `--limit`
+sets the requested page size, and Atlas follows every page at each requested depth.
 
 ```bash
 atlas jira get PROJ-123  # issue details
@@ -209,15 +237,30 @@ atlas jira create --help  # discover all flags
 
 ### Confluence
 
+Page reads preserve code blocks, links, and table cells in the default Markdown
+output. Tables with merged cells remain HTML. The page tree follows pagination
+before organizing pages by parent.
+
 ```bash
 atlas conf get 12345678  # page content
 atlas conf search "architecture" --space DEV  # search
 atlas conf tree DEV  # page hierarchy
 atlas conf create --space DEV --title "New Page" --body "content"
 atlas conf update 12345678 --title "Updated" --body "new content"
+atlas conf publish 12345678 doc.md --title "Design Doc" --dry-run  # preview locally
 atlas conf publish 12345678 doc.md --title "Design Doc"  # publish with Mermaid
 atlas conf --help  # list commands
 ```
+
+For documents with Mermaid, install [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli)
+(`mmdc`) and configure its browser. Both preview and publish render every diagram
+locally. `--dry-run` prints the target page ID, title, attachment names, and
+Confluence storage markup without Atlassian credentials or API calls.
+
+Publish stops before any Confluence writes if local rendering fails. It reuses
+attachments for identical rendered PNGs. If Confluence reports a page version
+conflict, review the latest page before retrying. Atlas lists any attachments
+it uploaded before the failure.
 
 ## Adding commands
 

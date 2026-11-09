@@ -1,8 +1,14 @@
 # Benchmark protocol
 
-No replacement performance numbers have been measured yet. The March 2026 reports
-are historical records with missing raw evidence. Do not use them as verified
-current-release claims.
+For live Jira and Confluence measurements and command coverage, see the
+[Atlas and Atlassian CLI comparison](ACLI.md).
+
+The March 2026 reports are historical records with missing raw evidence. They
+describe one ephemeral Docker MCP configuration and measure reported characters
+and tool execution times. See the [latency](LATENCY.md), [output](OUTPUT.md), and
+[schema](SCHEMA.md) notes for the limits of those observations.
+
+[![Historical March 2026 comparison of reported characters and execution times. Original samples are unavailable.](comparison.svg)](LATENCY.md)
 
 ## Prepare a shared workload
 
@@ -32,9 +38,38 @@ python benchmarks/benchmark_latency.py --cases /path/to/cases.json \
   --mode persistent --output /tmp/atlas-persistent.json
 ```
 
-Use `--cli-only` to validate the Atlas side without Docker. `--atlas` selects an
-explicit executable. Default: 2 warm-up calls, then 30 successful samples per
-operation/method. CLI and MCP order alternates on successive iterations. Both
+Use `--cli-only` to run without Docker. `--atlas` selects an explicit executable.
+Use `--compare-cli acli` or `--compare-cli twg` to include another CLI. In each
+case, add `compare_cli` with arguments for that executable and
+`expect_compare_cli` with required content. For example, this case compares the
+same issue and requested fields using Atlas and ACLI.
+
+```json
+[
+  {
+    "name": "Jira issue summary and status",
+    "cli": ["jira", "get", "DEMO-1", "--fields", "key,summary,status"],
+    "expect_cli": ["DEMO-1", "Synthetic design task", "In Progress"],
+    "compare_cli": ["jira", "workitem", "view", "DEMO-1", "--fields", "key,summary,status", "--json"],
+    "expect_compare_cli": ["DEMO-1", "Synthetic design task", "In Progress"]
+  }
+]
+```
+
+```bash
+python benchmarks/benchmark_latency.py --cases /path/to/cases.json \
+  --cli-only --compare-cli acli --output /tmp/atlas-acli.json
+```
+
+For a three-way comparison, supply `mcp_tool`, `mcp_args`, and `expect_mcp` for
+each case, drop `--cli-only`, and add the persistent MCP options from above.
+Match the resource, fields, and limits across all three methods. Report success
+counts and HTTP request counts alongside latency when request instrumentation
+is available. Keep local `--help` and `--version` timings separate from
+authenticated work.
+
+Default: 2 warm-up calls, then 30 successful samples per
+operation/method. Methods rotate positions on successive iterations. Both
 Docker modes reuse one gateway; persistent mode adds `--long-lived`. Gateway
 initialization and warm-up are outside the measured distribution. This does not
 measure cold startup; benchmark that separately if it is part of the claim.

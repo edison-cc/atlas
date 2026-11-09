@@ -1,8 +1,39 @@
 """HTTP client for Jira and Confluence Cloud REST APIs."""
 
-import sys
+from time import sleep
 
 import requests
+
+
+def request_error_message(error: requests.RequestException) -> str:
+    if isinstance(error, requests.Timeout):
+        return "Atlassian request timed out."
+    if isinstance(error, requests.ConnectionError):
+        return "Could not connect to Atlassian. Check your connection and configured site URL."
+    if isinstance(error, requests.JSONDecodeError):
+        return "Atlassian returned an invalid JSON response."
+    if not isinstance(error, requests.HTTPError) or error.response is None:
+        return "Atlassian request failed."
+
+    response = error.response
+    if response.status_code == 401:
+        return "API error (401): Atlassian rejected the credentials. Check the email, token, and site URL."
+    if response.status_code == 403:
+        return f"{error}\nCheck that the account can access this Atlassian resource."
+    if response.status_code == 409:
+        return f"{error}\nReview the latest resource before trying again."
+    if response.status_code == 429:
+        seconds = _retry_after(response)
+        wait = f" Wait at least {seconds} seconds before trying again." if seconds is not None else ""
+        return f"API error (429): Atlassian rate limit reached.{wait}"
+    return str(error)
+
+
+def _retry_after(response) -> int | None:
+    value = response.headers.get("Retry-After", "")
+    if value.isascii() and value.isdecimal() and len(value) <= 10:
+        return int(value)
+    return None
 
 
 class AtlassianClient:
@@ -35,55 +66,36 @@ class AtlassianClient:
     def confluence_put(self, path: str, json_body: dict | None = None) -> dict:
         return self._request("PUT", f"/wiki/rest/api/{path}", json=json_body)
 
-    def confluence_upload(self, page_id: str, filename: str, data: bytes, content_type: str) -> dict:
-        """Upload or update an attachment on a Confluence page (multipart form)."""
-        headers = {"X-Atlassian-Token": "no-check", "Accept": "application/json"}
-        base = f"{self.base_url}/wiki/rest/api/content/{page_id}/child/attachment"
-
-        resp = requests.post(
-            base,
-            auth=self.session.auth,
-            headers=headers,
-            files={"file": (filename, data, content_type)},
-            timeout=30,
-        )
-        if resp.ok:
-            return resp.json()
-
-        if resp.status_code == 400 and "same file name" in resp.text:
-            att_id = self._find_attachment_id(page_id, filename)
-            if att_id:
-                resp2 = requests.post(
-                    f"{base}/{att_id}/data",
-                    auth=self.session.auth,
-                    headers=headers,
-                    files={"file": (filename, data, content_type)},
-                    timeout=30,
-                )
-                if resp2.ok:
-                    return resp2.json()
-                print(f"Attachment update failed ({resp2.status_code}): {resp2.text}", file=sys.stderr)
-                sys.exit(1)
-
-        print(f"Upload failed ({resp.status_code}): {resp.text}", file=sys.stderr)
-        sys.exit(1)
-
-    def _find_attachment_id(self, page_id: str, filename: str) -> str | None:
-        data = self._request(
-            "GET",
-            f"/wiki/rest/api/content/{page_id}/child/attachment",
-            params={"filename": filename},
-        )
-        results = data.get("results", [])
-        return results[0]["id"] if results else None
+    def confluence_upload(self, page_id: str, filename: str, data: bytes, content_type: str) -> bool:
+        """Create a content-addressed attachment. Return False if it already exists."""
+        path = f"/wiki/rest/api/content/{page_id}/child/attachment"
+        try:
+            self._request(
+                "POST", path,
+                headers={"X-Atlassian-Token": "nocheck", "Content-Type": None},
+                files={"file": (filename, data, content_type)},
+            )
+        except requests.HTTPError as error:
+            if error.response.status_code not in (400, 409):
+                raise
+            existing = self._request("GET", path, params={"filename": filename})
+            if any(item.get("title") == filename for item in existing.get("results", [])):
+                return False
+            raise
+        return True
 
     def _request(self, method: str, path: str, **kwargs) -> dict:
         url = f"{self.base_url}{path}"
         kwargs.setdefault("timeout", 30)
         resp = self.session.request(method, url, **kwargs)
+        read_only = method == "GET" or (method == "POST" and path == "/rest/api/3/search/jql")
+        if read_only and resp.status_code in (429, 503):
+            seconds = _retry_after(resp)
+            if seconds is not None and seconds <= 5:
+                sleep(seconds)
+                resp = self.session.request(method, url, **kwargs)
         if not resp.ok:
-            print(f"API error ({resp.status_code}): {resp.text}", file=sys.stderr)
-            sys.exit(1)
+            raise requests.HTTPError(f"API error ({resp.status_code}): {resp.text}", response=resp)
         if resp.status_code == 204:
             return {}
         return resp.json()

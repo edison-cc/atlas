@@ -10,6 +10,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from benchmarks import benchmark_acli
 from benchmarks.benchmark_latency import fmt_stats, load_cases, run_cli, run_mcp
 from benchmarks.benchmark_output import compare
 
@@ -143,6 +144,46 @@ class BenchmarkTests(unittest.TestCase):
                 else:
                     self.assertEqual(report['summary'], [])
                     self.assertNotIn('| Operation |', process.stdout)
+
+    def test_two_clis_share_a_case_without_mcp_settings(self):
+        runner = Path(__file__).resolve().parents[1] / 'benchmarks' / 'benchmark_latency.py'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'cases.json'
+            path.write_text(json.dumps([{
+                'name': 'shared case',
+                'cli': ['-c', 'print("expected atlas")'],
+                'expect_cli': ['expected atlas'],
+                'compare_cli': ['-c', 'print("expected baseline")'],
+                'expect_compare_cli': ['expected baseline'],
+            }]))
+            output = root / 'result.json'
+            result = subprocess.run([
+                sys.executable, str(runner), '--cases', str(path), '--atlas', sys.executable,
+                '--compare-cli', sys.executable, '--cli-only', '--runs', '2', '--warmup', '0',
+                '--output', str(output),
+            ], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(output.read_text())
+            self.assertEqual([row['method'] for row in report['samples']],
+                             ['cli', 'compare_cli', 'compare_cli', 'cli'])
+            self.assertEqual([row['n'] for row in report['summary']], [2, 2])
+
+
+    def test_acli_report_uses_only_matching_pairs_and_omits_fixture_data(self):
+        case = {"name": "anonymous issue", "kind": "issue", "key": "PRIVATE-1", "fields": ["summary"]}
+        atlas = {"schema_version": 1, "key": "PRIVATE-1", "id": "123", "fields": {"summary": "private title"}}
+        acli = {"key": "PRIVATE-1", "id": "123", "fields": {"summary": "private title"}, "self": "private URL"}
+        changed = {**acli, "fields": {"summary": "different title"}}
+        responses = [(100, json.dumps(row)) for row in (atlas, acli, changed, atlas)]
+        with patch.object(benchmark_acli, "run_cli", side_effect=responses):
+            report = benchmark_acli.run_case(case, {"atlas": [], "acli": []}, runs=2, warmup=0)
+        self.assertEqual(report["mismatched_pairs"], 1)
+        self.assertEqual(report["summary"]["atlas"]["matched"], 1)
+        self.assertEqual(report["summary"]["acli"]["attempted"], 2)
+        self.assertNotIn("PRIVATE-1", json.dumps(report))
+        self.assertNotIn("private title", json.dumps(report))
+        self.assertNotIn("private URL", json.dumps(report))
 
 
 if __name__ == '__main__':

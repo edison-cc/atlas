@@ -7,7 +7,6 @@ from collections import defaultdict
 from atlas import __version__
 from atlas.commands import discover_commands
 from atlas.config import load_config
-from atlas.client import AtlassianClient
 
 
 def main():
@@ -50,9 +49,18 @@ def main():
                     sys.exit(1)
         sys.exit(1)
 
-    config = load_config()
-    client = AtlassianClient(config)
-    args.func(args, client)
+    if args.group == "conf" and args.command == "publish" and args.dry_run:
+        args.func(args, None)
+        return
+
+    from requests import RequestException
+
+    from atlas.client import AtlassianClient, request_error_message
+
+    try:
+        args.func(args, AtlassianClient(load_config()))
+    except RequestException as error:
+        sys.exit(request_error_message(error))
 
 
 if __name__ == "__main__":
