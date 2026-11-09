@@ -2,6 +2,7 @@
 
 from atlas.adf import adf_to_markdown
 from atlas.config import get_acceptance_criteria_field, get_story_points_field
+from atlas.output import print_json
 
 
 def issue_fields(
@@ -30,6 +31,7 @@ def register(subparser):
     p = subparser.add_parser("get", help="Get issue details")
     p.add_argument("key", help="Issue key (e.g. PROJ-123)")
     p.add_argument("--fields", help="Comma-separated fields to fetch")
+    p.add_argument("--json", action="store_true", help="Output structured JSON")
     p.add_argument(
         "--comments", action="store_true", help="Include comments (default: off)"
     )
@@ -45,6 +47,9 @@ def run(args, client):
 
     data = client.jira_get(f"issue/{args.key}", params=params)
     fields = data.get("fields", {})
+    if args.json:
+        print_json(key=data.get("key", args.key), id=data.get("id"), fields=fields)
+        return
 
     summary = fields.get("summary", "")
     status = _name(fields.get("status"))

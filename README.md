@@ -186,6 +186,14 @@ curl -fsSL https://raw.githubusercontent.com/edison-cc/atlas/main/.github/copilo
 
 Atlas also works as a standalone terminal CLI without any editor integration.
 
+Add `--json` to Jira `get` and `search`, or Confluence `get`, `search`, and
+`tree`, to get a single JSON object with `schema_version: 1`. Jira JSON preserves
+the values returned for the requested fields, including custom fields. Searches
+include `items` and `pagination` with `returned`, `total` (null when unknown),
+and `has_more`. Confluence `get --json --format storage` puts the original
+markup in `body.value`. Tree JSON applies `--depth` to `roots` and `detached`,
+and reports the number of pages loaded as `fetched_count`.
+
 ### Jira
 
 Jira rejects a search with no restriction, such as `order by created DESC`. Include a project, updated date, or other clause.

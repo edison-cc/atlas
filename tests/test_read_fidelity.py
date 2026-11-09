@@ -1,6 +1,7 @@
 """Regression tests for Confluence Markdown and read pagination."""
 
 import io
+import json
 import sys
 import unittest
 from argparse import Namespace
@@ -10,7 +11,7 @@ from unittest.mock import Mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from atlas.commands import conf_get, conf_search, conf_tree, jira_children, jira_search
+from atlas.commands import conf_get, conf_search, conf_tree, jira_children, jira_get, jira_search
 from atlas.confluence_storage import storage_to_markdown
 
 
@@ -30,7 +31,7 @@ class ReadFidelityTests(unittest.TestCase):
             )}},
         }
         with redirect_stdout(io.StringIO()) as output:
-            conf_get.run(Namespace(page_id="123", fmt="md", comments=False), client)
+            conf_get.run(Namespace(page_id="123", fmt="md", comments=False, json=False), client)
         text = output.getvalue()
         self.assertIn("| Name | Value |\n| --- | --- |\n| Timeout | `A \\| B` |", text)
         self.assertIn("[A & B](/wiki/link?a=1&b=2)", text)
@@ -71,7 +72,7 @@ class ReadFidelityTests(unittest.TestCase):
             ]},
         ]
         with redirect_stdout(io.StringIO()) as output:
-            conf_tree.run(Namespace(space_key="DEV", depth=3), client)
+            conf_tree.run(Namespace(space_key="DEV", depth=3, json=False), client)
         self.assertIn("Parent (1)\n  - Child (2)", output.getvalue())
         self.assertIn("### Pages with unavailable parents\nOrphan (3)", output.getvalue())
         path, = client.confluence_get.call_args.args
@@ -114,13 +115,54 @@ class ReadFidelityTests(unittest.TestCase):
         }
         with redirect_stdout(io.StringIO()) as output:
             jira_search.run(Namespace(
-                jql="project = DEV", fields="summary", story_points=False, parent=False, limit=1,
+                jql="project = DEV", fields="summary", story_points=False, parent=False, limit=1, json=False,
             ), jira)
-            conf_search.run(Namespace(query="type = page", space=None, limit=1), conf)
+            conf_search.run(Namespace(query="type = page", space=None, limit=1, json=False), conf)
         self.assertIn("## Jira: 1 results shown (more available)", output.getvalue())
         self.assertIn("## Confluence: 1 results shown (more available)", output.getvalue())
         jira.jira_get.assert_called_once()
         conf.confluence_get.assert_called_once()
+
+    def test_jira_json_keeps_requested_custom_fields_and_partial_metadata(self):
+        client = Mock()
+        fields = {"customfield_123": ["one", "two"]}
+        client.jira_get.side_effect = [
+            {"key": "DEV-1", "id": "1", "fields": fields},
+            {"issues": [{"key": "DEV-1", "id": "1", "fields": fields}], "nextPageToken": "more"},
+        ]
+        with redirect_stdout(io.StringIO()) as output:
+            jira_get.run(Namespace(key="DEV-1", fields="customfield_123", comments=False, json=True), client)
+            jira_search.run(Namespace(
+                jql="project = DEV", fields="customfield_123", story_points=False, parent=False,
+                limit=1, json=True,
+            ), client)
+        issue, search = map(json.loads, output.getvalue().splitlines())
+        self.assertEqual(issue, {"schema_version": 1, "key": "DEV-1", "id": "1", "fields": fields})
+        self.assertEqual(search["items"], [{"key": "DEV-1", "id": "1", "fields": fields}])
+        self.assertEqual(search["pagination"], {"returned": 1, "total": None, "has_more": True})
+        self.assertEqual(client.jira_get.call_args.kwargs["params"]["fields"], "customfield_123")
+
+    def test_confluence_json_keeps_storage_and_applies_tree_depth(self):
+        client = Mock()
+        storage = '<p>Design &amp; planning</p>'
+        client.confluence_get.side_effect = [
+            {"id": "123", "title": "Design", "body": {"storage": {"value": storage}}},
+            {"results": []},
+            {"results": [
+                {"id": "123", "title": "Design"},
+                {"id": "124", "title": "Details", "ancestors": [{"id": "123"}]},
+            ]},
+        ]
+        with redirect_stdout(io.StringIO()) as output:
+            conf_get.run(Namespace(page_id="123", fmt="storage", comments=False, json=True), client)
+            conf_search.run(Namespace(query="type = page", space=None, limit=1, json=True), client)
+            conf_tree.run(Namespace(space_key="DEV", depth=1, json=True), client)
+        page, search, tree = map(json.loads, output.getvalue().splitlines())
+        self.assertEqual(page["body"], {"format": "storage", "value": storage})
+        self.assertEqual(search["items"], [])
+        self.assertEqual(search["pagination"], {"returned": 0, "total": None, "has_more": False})
+        self.assertEqual(tree["fetched_count"], 2)
+        self.assertEqual(tree["roots"], [{"id": "123", "title": "Design", "children": []}])
 
 
 if __name__ == "__main__":

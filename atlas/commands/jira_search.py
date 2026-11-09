@@ -1,6 +1,7 @@
 """atlas jira search <JQL> -- search issues and display as Markdown table."""
 
 from atlas.config import get_story_points_field, warn_story_points_unconfigured
+from atlas.output import pagination, print_json
 
 
 def register(subparser):
@@ -13,6 +14,7 @@ def register(subparser):
     p.add_argument("--parent", action="store_true",
                     help="Include parent key column")
     p.add_argument("--limit", type=int, default=20, help="Max results (default: 20)")
+    p.add_argument("--json", action="store_true", help="Output structured JSON")
     p.set_defaults(func=run)
 
 
@@ -39,9 +41,18 @@ def run(args, client):
     issues = data.get("issues") or []
     showing = len(issues)
     total = data.get("total")
-    has_more = bool(data.get("nextPageToken")) or data.get("isLast") is False
+    has_more = (
+        bool(data.get("nextPageToken")) or data.get("isLast") is False
+        or (total is not None and total > showing)
+    )
+    if args.json:
+        print_json(
+            items=[{"key": issue.get("key"), "id": issue.get("id"), "fields": issue.get("fields", {})}
+                   for issue in issues],
+            pagination=pagination(showing, total, has_more),
+        )
+        return
     if total is not None and total > showing:
-        has_more = True
         print(f"## Jira: {total} results (showing {showing})")
     elif has_more:
         print(f"## Jira: {showing} results shown (more available)")
