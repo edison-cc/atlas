@@ -4,15 +4,24 @@ import io
 import json
 import sys
 import unittest
-from argparse import Namespace
+from argparse import ArgumentParser, Namespace
 from contextlib import redirect_stdout
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+
+from requests import HTTPError, Response
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from atlas import cli
 from atlas.commands import conf_get, conf_search, conf_tree, jira_children, jira_get, jira_search
 from atlas.confluence_storage import storage_to_markdown
+
+
+def _search_args(*options):
+    parser = ArgumentParser()
+    jira_search.register(parser.add_subparsers(required=True))
+    return parser.parse_args(["search", "project = DEV ORDER BY key ASC", *options])
 
 
 class ReadFidelityTests(unittest.TestCase):
@@ -114,13 +123,14 @@ class ReadFidelityTests(unittest.TestCase):
             "results": [{"content": {"id": "1"}}], "_links": {"next": "?cursor=abc"},
         }
         with redirect_stdout(io.StringIO()) as output:
-            jira_search.run(Namespace(
-                jql="project = DEV", fields="summary", story_points=False, parent=False, limit=1, json=False,
-            ), jira)
+            jira_search.run(_search_args("--fields", "summary"), jira)
             conf_search.run(Namespace(query="type = page", space=None, limit=1, json=False), conf)
         self.assertIn("## Jira: 1 results shown (more available)", output.getvalue())
         self.assertIn("## Confluence: 1 results shown (more available)", output.getvalue())
-        jira.jira_get.assert_called_once()
+        jira.jira_get.assert_called_once_with("search/jql", params={
+            "jql": "project = DEV ORDER BY key ASC", "fields": "summary", "maxResults": 20,
+        })
+        jira.jira_post.assert_not_called()
         conf.confluence_get.assert_called_once()
 
     def test_jira_json_keeps_requested_custom_fields_and_partial_metadata(self):
@@ -132,15 +142,85 @@ class ReadFidelityTests(unittest.TestCase):
         ]
         with redirect_stdout(io.StringIO()) as output:
             jira_get.run(Namespace(key="DEV-1", fields="customfield_123", comments=False, json=True), client)
-            jira_search.run(Namespace(
-                jql="project = DEV", fields="customfield_123", story_points=False, parent=False,
-                limit=1, json=True,
-            ), client)
+            jira_search.run(_search_args("--fields", "customfield_123", "--limit", "1", "--json"), client)
         issue, search = map(json.loads, output.getvalue().splitlines())
         self.assertEqual(issue, {"schema_version": 1, "key": "DEV-1", "id": "1", "fields": fields})
         self.assertEqual(search["items"], [{"key": "DEV-1", "id": "1", "fields": fields}])
         self.assertEqual(search["pagination"], {"returned": 1, "total": None, "has_more": True})
         self.assertEqual(client.jira_get.call_args.kwargs["params"]["fields"], "customfield_123")
+        self.assertEqual(client.jira_get.call_args.kwargs["params"]["maxResults"], 1)
+
+    def test_jira_search_paginate_follows_short_and_empty_pages(self):
+        client = Mock()
+        client.jira_post.side_effect = [
+            {"issues": [{"key": "DEV-1"}], "nextPageToken": "first"},
+            {"issues": [], "nextPageToken": "second"},
+            {"issues": [{"key": "DEV-2"}, {"key": "DEV-3"}], "isLast": True},
+        ]
+        with redirect_stdout(io.StringIO()) as output:
+            jira_search.run(_search_args("--fields", "key, summary", "--paginate", "--json"), client)
+        result = json.loads(output.getvalue())
+        self.assertEqual([issue["key"] for issue in result["items"]], ["DEV-1", "DEV-2", "DEV-3"])
+        self.assertEqual(result["pagination"], {"returned": 3, "total": None, "has_more": False})
+        queries = [call.kwargs["json_body"] for call in client.jira_post.call_args_list]
+        base = {"jql": "project = DEV ORDER BY key ASC", "fields": ["key", "summary"], "maxResults": 100}
+        self.assertEqual(queries, [base, {**base, "nextPageToken": "first"}, {**base, "nextPageToken": "second"}])
+        client.jira_get.assert_not_called()
+
+    def test_jira_search_paginated_limit_preserves_truncation_status(self):
+        scenarios = [
+            (["DEV-3"], {"isLast": True}, False),
+            (["DEV-3", "DEV-4"], {"isLast": True}, True),
+            (["DEV-3"], {"nextPageToken": "still-more"}, True),
+        ]
+        for keys, continuation, has_more in scenarios:
+            with self.subTest(keys=keys, continuation=continuation):
+                client = Mock()
+                client.jira_post.side_effect = [
+                    {"issues": [{"key": "DEV-1"}, {"key": "DEV-2"}], "nextPageToken": "next"},
+                    {"issues": [{"key": key} for key in keys], **continuation},
+                ]
+                with redirect_stdout(io.StringIO()) as output:
+                    jira_search.run(_search_args("--paginate", "--limit", "3", "--json"), client)
+                result = json.loads(output.getvalue())
+                self.assertEqual([issue["key"] for issue in result["items"]], ["DEV-1", "DEV-2", "DEV-3"])
+                self.assertEqual(result["pagination"], {"returned": 3, "total": None, "has_more": has_more})
+                self.assertEqual(client.jira_post.call_count, 2)
+
+    def test_jira_search_rejects_incomplete_pagination_without_stdout(self):
+        scenarios = [
+            [{"issues": [{"key": "DEV-1"}], "isLast": False}],
+            [{"issues": [{"key": "DEV-1"}], "isLast": True, "total": 3}],
+            [{"issues": [{"key": "DEV-1"}], "nextPageToken": "repeat"}] * 2,
+        ]
+        for pages in scenarios:
+            with self.subTest(pages=pages):
+                client = Mock()
+                client.jira_post.side_effect = pages
+                with redirect_stdout(io.StringIO()) as output:
+                    with self.assertRaisesRegex(SystemExit, "Results are incomplete"):
+                        jira_search.run(_search_args("--paginate", "--json"), client)
+                self.assertEqual(output.getvalue(), "")
+                self.assertEqual(client.jira_post.call_count, len(pages))
+
+    def test_jira_search_second_page_error_exits_without_partial_stdout(self):
+        client = Mock()
+        response = Response()
+        response.status_code = 503
+        client.jira_post.side_effect = [
+            {"issues": [{"key": "DEV-1"}], "nextPageToken": "next"},
+            HTTPError("API error (503)", response=response),
+        ]
+        argv = ["atlas", "jira", "search", "project = DEV", "--paginate", "--json"]
+        with (
+            patch.object(sys, "argv", argv),
+            patch.object(cli, "load_config", return_value={}),
+            patch("atlas.client.AtlassianClient", return_value=client),
+            redirect_stdout(io.StringIO()) as output,
+            self.assertRaisesRegex(SystemExit, r"API error \(503\)"),
+        ):
+            cli.main()
+        self.assertEqual(output.getvalue(), "")
 
     def test_confluence_json_keeps_storage_and_applies_tree_depth(self):
         client = Mock()
