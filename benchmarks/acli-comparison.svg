@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="326" viewBox="0 0 780 326" role="img" aria-labelledby="title description">
+  <title id="title">Atlas vs. ACLI median read latency</title>
+  <desc id="description">Four representative live workloads, 30 matched pairs per case. Median command times in milliseconds, Atlas then ACLI: Jira issue with a comment 273 and 809; Jira search with 16 results 333 and 1,077; Confluence page with a 2.2 KB storage body 261 and 990; Confluence page with a 16.3 KB storage body 231 and 1,016.</desc>
+  <!-- Source: results/atlas-acli-2026-11-08.json and results/atlas-acli-confluence-2026-11-08.json -->
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+    .heading { font-size: 23px; font-weight: 700; fill: #172033; }
+    .subtitle { font-size: 14px; fill: #475569; }
+    .label { font-size: 15px; font-weight: 650; fill: #172033; }
+    .secondary, .tick { font-size: 13px; fill: #475569; }
+    .value { font-size: 14px; font-weight: 650; fill: #172033; font-variant-numeric: tabular-nums; }
+    .atlas { fill: #1d4ed8; }
+    .acli { fill: #64748b; }
+  </style>
+  <rect x="0.5" y="0.5" width="779" height="325" rx="14" fill="#f8fafc" stroke="#d8e1ec"/>
+  <text x="24" y="37" class="heading">Live read latency</text>
+  <text x="24" y="61" class="subtitle">Median command time (p50) · 30 matched pairs per case</text>
+  <rect x="572" y="28" width="14" height="14" rx="2" class="atlas"/>
+  <text x="594" y="40" class="label">Atlas</text>
+  <rect x="658" y="28" width="14" height="14" rx="2" class="acli"/>
+  <text x="680" y="40" class="label">ACLI 1.3.40</text>
+  <g stroke="#d8e1ec">
+    <path d="M230 82 V290"/>
+    <path d="M352.5 82 V290"/>
+    <path d="M475 82 V290"/>
+    <path d="M597.5 82 V290"/>
+    <path d="M720 82 V290"/>
+  </g>
+  <text x="230" y="310" text-anchor="middle" class="tick">0</text>
+  <text x="352.5" y="310" text-anchor="middle" class="tick">300</text>
+  <text x="475" y="310" text-anchor="middle" class="tick">600</text>
+  <text x="597.5" y="310" text-anchor="middle" class="tick">900</text>
+  <text x="720" y="310" text-anchor="middle" class="tick">1,200 ms</text>
+  <g aria-label="Jira issue with a comment">
+    <text x="24" y="114" class="label">Jira issue with a comment</text>
+    <rect x="230" y="93" width="111.28" height="13" rx="3" class="atlas"/>
+    <text x="349.28" y="105" class="value">273</text>
+    <rect x="230" y="111" width="330.53" height="13" rx="3" class="acli"/>
+    <text x="568.53" y="123" class="value">809</text>
+  </g>
+  <g aria-label="Jira JQL search, 16 results">
+    <text x="24" y="156" class="label">Jira JQL search</text>
+    <text x="24" y="174" class="secondary">16 results</text>
+    <rect x="230" y="143" width="135.81" height="13" rx="3" class="atlas"/>
+    <text x="373.81" y="155" class="value">333</text>
+    <rect x="230" y="161" width="439.92" height="13" rx="3" class="acli"/>
+    <text x="677.92" y="173" class="value">1,077</text>
+  </g>
+  <g aria-label="Confluence page, 2.2 KB storage body">
+    <text x="24" y="206" class="label">Confluence page</text>
+    <text x="24" y="224" class="secondary">2.2 KB storage body</text>
+    <rect x="230" y="193" width="106.49" height="13" rx="3" class="atlas"/>
+    <text x="344.49" y="205" class="value">261</text>
+    <rect x="230" y="211" width="404.33" height="13" rx="3" class="acli"/>
+    <text x="642.33" y="223" class="value">990</text>
+  </g>
+  <g aria-label="Confluence page, 16.3 KB storage body">
+    <text x="24" y="256" class="label">Confluence page</text>
+    <text x="24" y="274" class="secondary">16.3 KB storage body</text>
+    <rect x="230" y="243" width="94.29" height="13" rx="3" class="atlas"/>
+    <text x="332.29" y="255" class="value">231</text>
+    <rect x="230" y="261" width="415.00" height="13" rx="3" class="acli"/>
+    <text x="653.00" y="273" class="value">1,016</text>
+  </g>
+</svg>

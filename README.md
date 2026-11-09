@@ -42,12 +42,19 @@ Confluence page reads, Atlas had **74–77% lower median latency** and **29–38
 fewer JSON stdout bytes**. Each case had 30 matched pairs on the same Mac and
 Atlassian Cloud site. Atlas used an API token and ACLI used OAuth.
 
+[![Median command latency for four matched Jira and Confluence reads. Atlas ranged from 231 to 333 ms and ACLI ranged from 809 to 1,077 ms.](benchmarks/acli-comparison.svg)](benchmarks/ACLI.md)
+
+<details>
+<summary>View exact p50 and p95 values for the charted cases</summary>
+
 | Workload | Atlas p50 / p95 | ACLI p50 / p95 |
 | --- | ---: | ---: |
 | Jira issue with a comment | 273 / 315 ms | 809 / 926 ms |
 | Jira JQL search, 16 rows | 333 / 407 ms | 1,077 / 1,269 ms |
 | Confluence page, 2.2 KB storage body | 261 / 326 ms | 990 / 1,153 ms |
 | Confluence page, 16.3 KB storage body | 231 / 285 ms | 1,016 / 1,188 ms |
+
+</details>
 
 ACLI covers more Jira and Confluence operations in its visible command tree
 (70 command names versus 16), including Jira bulk actions and Confluence
