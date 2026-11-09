@@ -242,13 +242,17 @@ def _prepare_diagrams(content: str) -> tuple[str, dict[str, bytes]]:
 
     parts = []
     attachments = {}
+    filenames_by_source = {}
     offset = 0
     with tempfile.TemporaryDirectory() as directory:
         for index, (start, end, source) in enumerate(blocks, 1):
-            print(f"Rendering diagram {index}...", file=sys.stderr)
-            data = _render_mermaid(renderer, source, Path(directory) / f"diagram-{index}.png")
-            filename = f"atlas-diagram-{hashlib.sha256(data).hexdigest()}.png"
-            attachments[filename] = data
+            if source not in filenames_by_source:
+                print(f"Rendering diagram {index}...", file=sys.stderr)
+                data = _render_mermaid(renderer, source, Path(directory) / f"diagram-{index}.png")
+                filename = f"atlas-diagram-{hashlib.sha256(data).hexdigest()}.png"
+                attachments[filename] = data
+                filenames_by_source[source] = filename
+            filename = filenames_by_source[source]
             parts.extend([
                 content[offset:start],
                 '<ac:image ac:align="center" ac:custom-width="true" ac:layout="center" ac:width="550">'

@@ -131,6 +131,7 @@ def test_regression_http_and_anchor_link_on_same_line():
 
 
 _DIAGRAM = "```mermaid\ngraph TD\nA --> B\n```"
+_OTHER_DIAGRAM = "```mermaid\ngraph TD\nB --> C\n```"
 _PNG_DATA = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9ioAAAAASUVORK5CYII="
 )
@@ -154,7 +155,7 @@ def test_second_render_failure_aborts_before_any_api_call():
     with TemporaryDirectory() as directory, patch.object(conf_publish.shutil, "which", return_value="mmdc"), \
             patch.object(conf_publish, "_render_mermaid", side_effect=[_PNG_DATA, error]) as render, \
             redirect_stderr(io.StringIO()) as stderr, TestCase().assertRaises(SystemExit) as failure:
-        args = _publish_input(directory, f"# Design\n\n{_DIAGRAM}\n\n{_DIAGRAM}")
+        args = _publish_input(directory, f"# Design\n\n{_DIAGRAM}\n\n{_OTHER_DIAGRAM}")
         conf_publish.run(args, client)
     assert failure.exception.code == 1
     assert render.call_count == 2
@@ -180,6 +181,24 @@ def test_mermaid_scanner_ignores_examples_and_rejects_unclosed_fences():
     assert "Unclosed Mermaid" in str(failure.exception)
 
 
+def test_diagrams_reuse_identical_source_and_preserve_reference_order():
+    other_png = b"different rendered PNG"
+    other_filename = f"atlas-diagram-{hashlib.sha256(other_png).hexdigest()}.png"
+    content = f"{_DIAGRAM}\n\nInterlude\n\n{_OTHER_DIAGRAM}\n\n{_DIAGRAM}"
+    with (
+        patch.object(conf_publish.shutil, "which", return_value="mmdc"),
+        patch.object(conf_publish, "_render_mermaid", side_effect=[_PNG_DATA, other_png]) as render,
+        redirect_stderr(io.StringIO()),
+    ):
+        prepared, attachments = conf_publish._prepare_diagrams(content)
+
+    assert [call.args[1] for call in render.call_args_list] == ["graph TD\nA --> B", "graph TD\nB --> C"]
+    assert list(attachments.items()) == [(_ATTACHMENT, _PNG_DATA), (other_filename, other_png)]
+    assert prepared.count(f'ri:filename="{_ATTACHMENT}"') == 2
+    assert prepared.index(_ATTACHMENT) < prepared.index("Interlude") < prepared.index(other_filename)
+    assert prepared.index(other_filename) < prepared.rindex(_ATTACHMENT)
+
+
 def test_dry_run_uses_real_cli_path_without_credentials():
     with TemporaryDirectory() as directory:
         args = _publish_input(directory, f"# Design\n\n{_DIAGRAM}\n\n{_DIAGRAM}")
@@ -187,7 +206,7 @@ def test_dry_run_uses_real_cli_path_without_credentials():
         with patch.object(cli, "load_config") as config, \
                 patch("atlas.client.AtlassianClient") as client, \
                 patch.object(conf_publish.shutil, "which", return_value="mmdc"), \
-                patch.object(conf_publish, "_render_mermaid", return_value=_PNG_DATA), \
+                patch.object(conf_publish, "_render_mermaid", return_value=_PNG_DATA) as render, \
                 redirect_stderr(io.StringIO()):
             with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as stdout:
                 cli.main()
@@ -195,6 +214,7 @@ def test_dry_run_uses_real_cli_path_without_credentials():
                 cli.main()
     config.assert_not_called()
     client.assert_not_called()
+    assert render.call_count == 2
     preview = stdout.getvalue()
     assert "Dry run for page 123: Design" in preview
     assert preview.splitlines()[1] == f"Attachments: {_ATTACHMENT}"
@@ -456,7 +476,7 @@ def test_failed_second_upload_reports_only_completed_attachment_and_skips_page_u
         redirect_stderr(io.StringIO()) as stderr,
         TestCase().assertRaises(SystemExit) as failure,
     ):
-        args = _publish_input(directory, f"{_DIAGRAM}\n\n{_DIAGRAM}")
+        args = _publish_input(directory, f"{_DIAGRAM}\n\n{_OTHER_DIAGRAM}")
         args.json = True
         conf_publish.run(args, client)
 
