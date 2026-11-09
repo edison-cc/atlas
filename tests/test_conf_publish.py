@@ -3,17 +3,23 @@
 Runnable with pytest or directly: ``python tests/test_conf_publish.py``.
 """
 
+import base64
 import hashlib
 import io
+import json
 import sys
 from argparse import Namespace
 from contextlib import redirect_stderr, redirect_stdout
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
+from subprocess import CompletedProcess
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
 from requests import HTTPError, Response
+from requests.adapters import HTTPAdapter
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -125,8 +131,15 @@ def test_regression_http_and_anchor_link_on_same_line():
 
 
 _DIAGRAM = "```mermaid\ngraph TD\nA --> B\n```"
-_PNG_DATA = b"rendered PNG bytes"
+_PNG_DATA = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9ioAAAAASUVORK5CYII="
+)
 _ATTACHMENT = f"atlas-diagram-{hashlib.sha256(_PNG_DATA).hexdigest()}.png"
+_CONFIG = {
+    "atlassian_base_url": "https://example.invalid",
+    "atlassian_email": "example@example.invalid",
+    "atlassian_api_token": "fake-token",
+}
 
 
 def _publish_input(directory, content):
@@ -211,11 +224,7 @@ def test_publish_version_conflict_reports_uploaded_files_and_does_not_retry():
 
 
 def test_attachment_duplicate_is_reused_only_when_filename_matches():
-    client = AtlassianClient({
-        "atlassian_base_url": "https://example.invalid",
-        "atlassian_email": "example@example.invalid",
-        "atlassian_api_token": "fake-token",
-    })
+    client = AtlassianClient(_CONFIG)
     duplicate = Mock(ok=False, status_code=400, text="duplicate")
     for filename in (_ATTACHMENT, "other.png"):
         lookup = Mock(ok=True, status_code=200)
@@ -228,6 +237,121 @@ def test_attachment_duplicate_is_reused_only_when_filename_matches():
                     client.confluence_upload("123", _ATTACHMENT, _PNG_DATA, "image/png")
             assert [entry.args[0] for entry in request.call_args_list] == ["POST", "GET"]
             assert request.call_args.kwargs["params"] == {"filename": _ATTACHMENT}
+
+
+def _http_response(status, payload):
+    response = Response()
+    response.status_code = status
+    response._content = json.dumps(payload).encode("utf-8")
+    return response
+
+
+def _renderer_writes(data):
+    def render(command, **kwargs):
+        if data is not None:
+            Path(command[command.index("-o") + 1]).write_bytes(data)
+        return CompletedProcess(command, 0, stdout="", stderr="")
+    return render
+
+
+def test_cli_publish_and_retry_keep_one_attachment_and_update_the_page():
+    page_url = "/wiki/rest/api/content/123"
+    attachments_url = page_url + "/child/attachment"
+    page_link = "/spaces/DEV/pages/123/Design"
+    responses = [
+        _http_response(200, {"version": {"number": 4}, "_links": {"webui": page_link}}),
+        _http_response(200, {"results": [{"title": _ATTACHMENT}]}),
+        _http_response(200, {}),
+        _http_response(200, {"version": {"number": 5}, "_links": {"webui": page_link}}),
+        _http_response(409, {"message": "attachment already exists"}),
+        _http_response(200, {"results": [{"title": _ATTACHMENT}]}),
+        _http_response(200, {}),
+    ]
+    with (
+        TemporaryDirectory() as directory,
+        patch.object(cli, "load_config", return_value=_CONFIG),
+        patch.object(conf_publish.shutil, "which", return_value="mmdc"),
+        patch.object(conf_publish.subprocess, "run", side_effect=_renderer_writes(_PNG_DATA)),
+        patch.object(HTTPAdapter, "send", side_effect=responses) as send,
+        redirect_stdout(io.StringIO()) as stdout,
+        redirect_stderr(io.StringIO()) as stderr,
+    ):
+        args = _publish_input(directory, f"# Design\n\n{_DIAGRAM}\n\n{_DIAGRAM}")
+        argv = ["atlas", "conf", "publish", "123", str(args.input_file), "--title", "Design", "--minor"]
+        with patch.object(sys, "argv", argv):
+            cli.main()
+            cli.main()
+
+    requests = [call.args[0] for call in send.call_args_list]
+    assert [(request.method, request.path_url) for request in requests] == [
+        ("GET", page_url + "?expand=version"),
+        ("POST", attachments_url),
+        ("PUT", page_url),
+        ("GET", page_url + "?expand=version"),
+        ("POST", attachments_url),
+        ("GET", attachments_url + f"?filename={_ATTACHMENT}"),
+        ("PUT", page_url),
+    ]
+    upload = requests[1]
+    assert upload.headers["X-Atlassian-Token"] == "nocheck"
+    envelope = f"Content-Type: {upload.headers['Content-Type']}\r\n\r\n".encode() + upload.body
+    file, = BytesParser(policy=policy.default).parsebytes(envelope).iter_parts()
+    assert file.get_filename() == _ATTACHMENT
+    assert file.get_content_type() == "image/png"
+    assert file.get_payload(decode=True) == _PNG_DATA
+
+    first, retry = (json.loads(requests[index].body) for index in (2, 6))
+    assert first["version"] == {"number": 5, "minorEdit": True}
+    assert retry["version"] == {"number": 6, "minorEdit": True}
+    assert first["title"] == retry["title"] == "Design"
+    assert first["body"] == retry["body"]
+    assert retry["body"]["storage"]["value"].count(f'ri:filename="{_ATTACHMENT}"') == 2
+    assert stdout.getvalue().splitlines() == [f"Published: https://example.invalid/wiki{page_link}"] * 2
+    assert f"Reusing attachment {_ATTACHMENT}" in stderr.getvalue()
+
+
+def test_failed_second_upload_reports_only_completed_attachment_and_skips_page_update():
+    client = AtlassianClient(_CONFIG)
+    responses = [
+        _http_response(200, {"version": {"number": 4}}),
+        _http_response(200, {}),
+        _http_response(403, {"message": "attachment upload denied"}),
+    ]
+    with (
+        TemporaryDirectory() as directory,
+        patch.object(conf_publish.shutil, "which", return_value="mmdc"),
+        patch.object(conf_publish, "_render_mermaid", side_effect=[_PNG_DATA, b"different rendered PNG"]),
+        patch.object(HTTPAdapter, "send", side_effect=responses) as send,
+        redirect_stdout(io.StringIO()) as stdout,
+        redirect_stderr(io.StringIO()) as stderr,
+        TestCase().assertRaises(SystemExit) as failure,
+    ):
+        conf_publish.run(_publish_input(directory, f"{_DIAGRAM}\n\n{_DIAGRAM}"), client)
+
+    assert failure.exception.code == 1
+    assert stdout.getvalue() == ""
+    assert [call.args[0].method for call in send.call_args_list] == ["GET", "POST", "POST"]
+    assert "attachment upload denied" in stderr.getvalue()
+    assert stderr.getvalue().splitlines()[-1] == f"Attachments uploaded before failure: {_ATTACHMENT}"
+
+
+def test_successful_renderer_exit_requires_complete_png_before_any_api_call():
+    for output, diagnostic in (
+        (None, "did not produce"),
+        (_PNG_DATA[:-12], "incomplete or invalid PNG"),
+    ):
+        client = Mock(spec=AtlassianClient)
+        with (
+            TemporaryDirectory() as directory,
+            patch.object(conf_publish.shutil, "which", return_value="mmdc"),
+            patch.object(conf_publish.subprocess, "run", side_effect=_renderer_writes(output)),
+            redirect_stderr(io.StringIO()) as stderr,
+            TestCase().assertRaises(SystemExit) as failure,
+        ):
+            conf_publish.run(_publish_input(directory, _DIAGRAM), client)
+        assert failure.exception.code == 1
+        assert diagnostic in stderr.getvalue()
+        assert client.mock_calls == []
 
 
 if __name__ == "__main__":
