@@ -6,13 +6,24 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-09
+
 ### Added
 
 - `atlas conf publish --dry-run` renders diagrams and previews the page and attachments without Atlassian credentials.
+- `atlas conf publish --diff` compares a local document with the current Confluence page and previews the proposed attachments.
+- Supported Jira and Confluence reads and writes accept `--json` and return versioned results.
+
+### Changed
+
+- Confluence publish and preview commands render each distinct Mermaid source once per invocation.
+- Help and version commands defer loading the HTTP client.
 
 ### Fixed
 
 - `atlas conf publish` stops before any writes if Mermaid rendering fails, reuses attachments for identical PNGs, and reports uploaded files on a page version conflict.
+- Confluence page reads preserve code blocks, links, and table cells more faithfully. Space trees follow pagination before building the hierarchy.
+- Atlassian request failures report actionable diagnostics, and eligible reads retry once when the server requests a short delay.
 
 ## [0.4.1] - 2026-11-05
 
