@@ -14,7 +14,7 @@ from requests import HTTPError, Response
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from atlas import cli
-from atlas.commands import conf_get, conf_search, conf_tree, jira_children, jira_get, jira_search
+from atlas.commands import conf_get, conf_search, conf_tree, jira_children, jira_get, jira_parent, jira_search
 from atlas.confluence_storage import storage_to_markdown
 
 
@@ -93,13 +93,15 @@ class ReadFidelityTests(unittest.TestCase):
 
     def test_jira_children_searches_descendants_of_later_results(self):
         client = Mock()
-        client.jira_post.side_effect = [
-            {"issues": [{"key": "DEV-2"}], "nextPageToken": "cursor", "isLast": False},
-            {"issues": [{"key": "DEV-3"}], "isLast": True},
-            {"issues": [{"key": "DEV-4", "fields": {"parent": {"key": "DEV-3"}}}], "isLast": True},
+        pages = [
+            {"issues": [{"key": "DEV-2", "id": "2", "fields": {"parent": {"key": "DEV-1"}}}],
+             "nextPageToken": "cursor", "isLast": False},
+            {"issues": [{"key": "DEV-3", "id": "3"}], "isLast": True},
+            {"issues": [{"key": "DEV-4", "id": "4", "fields": {"parent": {"key": "DEV-3"}}}], "isLast": True},
         ]
+        client.jira_post.side_effect = pages
         with redirect_stdout(io.StringIO()) as output:
-            jira_children.run(Namespace(key="DEV-1", depth=2, limit=1, story_points=False), client)
+            jira_children.run(Namespace(key="DEV-1", depth=2, limit=1, story_points=False, json=False), client)
         self.assertIn("3 issues", output.getvalue())
         self.assertIn("| DEV-4 |", output.getvalue())
         queries = [call.kwargs["json_body"] for call in client.jira_post.call_args_list]
@@ -107,6 +109,45 @@ class ReadFidelityTests(unittest.TestCase):
         self.assertEqual(queries[2]["jql"], "parent in (DEV-2, DEV-3) ORDER BY key ASC")
         self.assertNotIn("nextPageToken", queries[2])
         self.assertTrue(all(query["maxResults"] == 1 for query in queries))
+
+        client.reset_mock()
+        client.jira_post.side_effect = pages
+        with redirect_stdout(io.StringIO()) as json_output:
+            jira_children.run(Namespace(key="DEV-1", depth=2, limit=1, story_points=False, json=True), client)
+        payload = json.loads(json_output.getvalue())
+        self.assertEqual(payload, {
+            "schema_version": 1, "root_key": "DEV-1", "items": [
+                {"key": "DEV-2", "id": "2", "parent_key": "DEV-1", "depth": 1,
+                 "fields": {"parent": {"key": "DEV-1"}}},
+                {"key": "DEV-3", "id": "3", "parent_key": None, "depth": 1, "fields": {}},
+                {"key": "DEV-4", "id": "4", "parent_key": "DEV-3", "depth": 2,
+                 "fields": {"parent": {"key": "DEV-3"}}},
+            ],
+        })
+        self.assertTrue(all(f"| {item['key']} |" in output.getvalue() for item in payload["items"]))
+        self.assertEqual([call.kwargs["json_body"] for call in client.jira_post.call_args_list], queries)
+
+    def test_jira_parent_json_uses_the_same_chain_and_depth_limit(self):
+        client = Mock()
+        first = {"summary": "Child", "parent": {"key": "DEV-2"}}
+        second = {"summary": "Parent", "parent": {"key": "DEV-3"}}
+        pages = [{"id": "1", "fields": first}, {"id": "2", "fields": second}]
+        client.jira_get.side_effect = pages
+        with redirect_stdout(io.StringIO()) as output:
+            jira_parent.run(Namespace(key="DEV-1", depth=1, json=True), client)
+        payload = json.loads(output.getvalue())
+        self.assertEqual(payload, {
+            "schema_version": 1, "root_key": "DEV-1", "items": [
+                {"key": "DEV-1", "id": "1", "parent_key": "DEV-2", "depth": 0, "fields": first},
+                {"key": "DEV-2", "id": "2", "parent_key": "DEV-3", "depth": 1, "fields": second},
+            ],
+        })
+        self.assertEqual([call.args[0] for call in client.jira_get.call_args_list], ["issue/DEV-1", "issue/DEV-2"])
+        client.jira_get.side_effect = pages
+        with redirect_stdout(io.StringIO()) as markdown:
+            jira_parent.run(Namespace(key="DEV-1", depth=1, json=False), client)
+        self.assertIn("- DEV-1: Child", markdown.getvalue())
+        self.assertIn("  - DEV-2: Parent", markdown.getvalue())
 
     def test_jira_children_fails_on_a_repeated_cursor(self):
         client = Mock()

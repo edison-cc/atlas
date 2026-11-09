@@ -2,6 +2,7 @@
 
 from atlas.config import get_story_points_field, warn_story_points_unconfigured
 from atlas.jira_pagination import iter_search_pages
+from atlas.output import print_json
 
 
 def register(subparser):
@@ -13,6 +14,7 @@ def register(subparser):
                     help="Max recursion depth (default: 2)")
     p.add_argument("--limit", type=int, default=100,
                     help="Max results per Jira request (default: 100)")
+    p.add_argument("--json", action="store_true", help="Output structured JSON")
     p.set_defaults(func=run)
 
 
@@ -23,6 +25,9 @@ def run(args, client):
         warn_story_points_unconfigured()
         show_sp = False
     all_issues = _collect_children(client, [args.key], args.depth, args.limit, sp_field)
+    if args.json:
+        print_json(root_key=args.key, items=all_issues)
+        return
 
     print(f"## Children of {args.key}: {len(all_issues)} issues")
     print()
@@ -44,7 +49,7 @@ def run(args, client):
         summary = fields.get("summary", "")
         status = _name(fields.get("status"))
         assignee = _display_name(fields.get("assignee"))
-        parent_key = _parent_key(fields)
+        parent_key = issue["parent_key"] or "—"
         if show_sp:
             sp = _story_points(fields, sp_field)
             print(f"| {key} | {summary} | {sp} | {status} | {assignee} | {parent_key} |")
@@ -60,7 +65,7 @@ def _collect_children(client, parent_keys, depth, limit, sp_field):
 
     issues = []
     seen_keys = set(parent_keys)
-    for _ in range(depth):
+    for level in range(1, depth + 1):
         if not parent_keys:
             break
         keys_csv = ", ".join(parent_keys)
@@ -76,7 +81,15 @@ def _collect_children(client, parent_keys, depth, limit, sp_field):
                 if key not in seen_keys:
                     seen_keys.add(key)
                     parent_keys.append(key)
-                    issues.append(issue)
+                    issue_fields = issue.get("fields", {})
+                    parent = issue_fields.get("parent")
+                    issues.append({
+                        "key": key,
+                        "id": issue.get("id"),
+                        "parent_key": parent.get("key") if isinstance(parent, dict) else None,
+                        "depth": level,
+                        "fields": issue_fields,
+                    })
     return issues
 
 
@@ -90,13 +103,6 @@ def _display_name(obj):
     if not obj:
         return "unassigned"
     return obj.get("displayName", "unknown")
-
-
-def _parent_key(fields):
-    parent = fields.get("parent")
-    if parent and isinstance(parent, dict):
-        return parent.get("key", "—")
-    return "—"
 
 
 def _story_points(fields, sp_field):
