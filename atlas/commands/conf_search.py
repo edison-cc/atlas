@@ -19,14 +19,20 @@ def run(args, client):
     params = {"cql": cql, "limit": args.limit}
     data = client.confluence_get("search", params=params)
 
-    results = data.get("results", [])
-    total = data.get("totalSize", len(results))
+    results = data.get("results") or []
+    total = data.get("totalSize")
+    has_more = bool(data.get("_links", {}).get("next")) or (total is not None and total > len(results))
 
-    print(f"## Confluence: {total} results (showing {len(results)})")
+    if total is not None and (not has_more or total > len(results)):
+        print(f"## Confluence: {total} results (showing {len(results)})")
+    elif has_more:
+        print(f"## Confluence: {len(results)} results shown (more available)")
+    else:
+        print(f"## Confluence: {len(results)} results")
     print()
 
     if not results:
-        print("No results.")
+        print("No results on this page." if has_more else "No results.")
         return
 
     print("| Title | Space | Type | Updated |")

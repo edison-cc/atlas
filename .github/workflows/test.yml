@@ -19,6 +19,7 @@ jobs:
       - run: python tests/test_conf_publish.py
       - run: python tests/test_config.py
       - run: python tests/test_jira_get.py
+      - run: python tests/test_read_fidelity.py
       - run: python tests/test_benchmarks.py
       - run: python -m pip install .
       - run: atlas --version

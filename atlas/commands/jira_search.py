@@ -36,18 +36,21 @@ def run(args, client):
     }
     data = client.jira_get("search/jql", params=params)
 
-    total = data.get("total", len(data.get("issues", [])))
-    issues = data.get("issues", [])
-
+    issues = data.get("issues") or []
     showing = len(issues)
-    if total > showing:
+    total = data.get("total")
+    has_more = bool(data.get("nextPageToken")) or data.get("isLast") is False
+    if total is not None and total > showing:
+        has_more = True
         print(f"## Jira: {total} results (showing {showing})")
+    elif has_more:
+        print(f"## Jira: {showing} results shown (more available)")
     else:
         print(f"## Jira: {showing} results")
     print()
 
     if not issues:
-        print("No results.")
+        print("No results on this page." if has_more else "No results.")
         return
 
     header, sep = _build_header(show_sp, show_parent)

@@ -1,5 +1,6 @@
 """atlas conf tree <SPACE-KEY> -- show page hierarchy for a space."""
 
+from atlas.confluence_pagination import iter_results
 
 def register(subparser):
     p = subparser.add_parser("tree", help="Show page tree for a space")
@@ -15,20 +16,23 @@ def run(args, client):
         "expand": "ancestors",
         "limit": 200,
     }
-    data = client.confluence_get("content", params=params)
-    pages = data.get("results", [])
+    pages = {page["id"]: page for page in iter_results(client, "content", params)}
 
     print(f"## Page tree: {args.space_key} ({len(pages)} pages)")
     print()
 
-    tree = _build_tree(pages)
+    tree, detached = _build_tree(pages.values())
     _print_tree(tree, max_depth=args.depth)
+    if detached:
+        print("\n### Pages with unavailable parents")
+        _print_tree(detached, max_depth=args.depth)
 
 
 def _build_tree(pages):
     """Build a nested tree structure from flat page list with ancestors."""
     by_id = {}
     roots = []
+    detached = []
 
     for page in pages:
         pid = page["id"]
@@ -46,11 +50,11 @@ def _build_tree(pages):
             if parent_id in by_id:
                 by_id[parent_id]["children"].append(by_id[pid])
             else:
-                roots.append(by_id[pid])
+                detached.append(by_id[pid])
         else:
             roots.append(by_id[pid])
 
-    return roots
+    return roots, detached
 
 
 def _print_tree(nodes, indent=0, max_depth=3):

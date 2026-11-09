@@ -189,6 +189,8 @@ Atlas also works as a standalone terminal CLI without any editor integration.
 ### Jira
 
 Jira rejects a search with no restriction, such as `order by created DESC`. Include a project, updated date, or other clause.
+Search shows whether more results are available. For `jira children`, `--limit`
+sets the requested page size, and Atlas follows every page at each requested depth.
 
 ```bash
 atlas jira get PROJ-123  # issue details
@@ -208,6 +210,10 @@ atlas jira create --help  # discover all flags
 ```
 
 ### Confluence
+
+Page reads preserve code blocks, links, and table cells in the default Markdown
+output. Tables with merged cells remain HTML. The page tree follows pagination
+before organizing pages by parent.
 
 ```bash
 atlas conf get 12345678  # page content
