@@ -2,7 +2,7 @@
 
 from atlas.adf import adf_to_markdown
 from atlas.config import get_acceptance_criteria_field, get_story_points_field
-from atlas.output import print_json
+from atlas.output import pagination, print_json
 
 
 def issue_fields(
@@ -33,7 +33,8 @@ def register(subparser):
     p.add_argument("--fields", help="Comma-separated fields to fetch")
     p.add_argument("--json", action="store_true", help="Output structured JSON")
     p.add_argument(
-        "--comments", action="store_true", help="Include comments (default: off)"
+        "--comments", action="store_true",
+        help="Include comments from the issue response and show how many were returned",
     )
     p.set_defaults(func=run)
 
@@ -47,8 +48,18 @@ def run(args, client):
 
     data = client.jira_get(f"issue/{args.key}", params=params)
     fields = data.get("fields", {})
+    if args.comments:
+        comment_page = fields.get("comment") or {}
+        comments = comment_page.get("comments") or []
+        comment_count = len(comments)
+        comment_total = comment_page.get("total")
+        more_comments = comment_count < comment_total if comment_total is not None else None
+
     if args.json:
-        print_json(key=data.get("key", args.key), id=data.get("id"), fields=fields)
+        result = {"key": data.get("key", args.key), "id": data.get("id"), "fields": fields}
+        if args.comments:
+            result["comments_pagination"] = pagination(comment_count, comment_total, more_comments)
+        print_json(**result)
         return
 
     summary = fields.get("summary", "")
@@ -98,16 +109,16 @@ def run(args, client):
             print(ac_text)
 
     if args.comments:
-        comments = fields.get("comment", {}).get("comments", [])
-        if comments:
-            print()
-            print(f"### Comments ({len(comments)})")
-            print()
-            for c in comments:
-                author = _display_name(c.get("author"))
-                date = _date(c.get("created"))
-                body = adf_to_markdown(c.get("body"))
-                print(f"**{author}** ({date}): {body}")
+        count_label = (
+            f"{comment_count} of {comment_total} shown"
+            if comment_total is not None else f"{comment_count} shown, total unknown"
+        )
+        print(f"\n### Comments ({count_label})\n")
+        for comment in comments:
+            author = _display_name(comment.get("author"))
+            date = _date(comment.get("created"))
+            body = adf_to_markdown(comment.get("body"))
+            print(f"**{author}** ({date}): {body}")
 
 
 def _name(obj):
