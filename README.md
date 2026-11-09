@@ -215,9 +215,20 @@ atlas conf search "architecture" --space DEV  # search
 atlas conf tree DEV  # page hierarchy
 atlas conf create --space DEV --title "New Page" --body "content"
 atlas conf update 12345678 --title "Updated" --body "new content"
+atlas conf publish 12345678 doc.md --title "Design Doc" --dry-run  # preview locally
 atlas conf publish 12345678 doc.md --title "Design Doc"  # publish with Mermaid
 atlas conf --help  # list commands
 ```
+
+For documents with Mermaid, install [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli)
+(`mmdc`) and configure its browser. Both preview and publish render every diagram
+locally. `--dry-run` prints the target page ID, title, attachment names, and
+Confluence storage markup without Atlassian credentials or API calls.
+
+Publish stops before any Confluence writes if local rendering fails. It reuses
+attachments for identical rendered PNGs. If Confluence reports a page version
+conflict, review the latest page before retrying. Atlas lists any attachments
+it uploaded before the failure.
 
 ## Adding commands
 

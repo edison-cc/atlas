@@ -6,6 +6,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- `atlas conf publish --dry-run` renders diagrams and previews the page and attachments without Atlassian credentials.
+
+### Fixed
+
+- `atlas conf publish` stops before any writes if Mermaid rendering fails, reuses attachments for identical PNGs, and reports uploaded files on a page version conflict.
+
 ## [0.4.1] - 2026-11-05
 
 ### Fixed

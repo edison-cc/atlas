@@ -4,6 +4,8 @@ import argparse
 import sys
 from collections import defaultdict
 
+from requests import HTTPError
+
 from atlas import __version__
 from atlas.commands import discover_commands
 from atlas.config import load_config
@@ -50,9 +52,15 @@ def main():
                     sys.exit(1)
         sys.exit(1)
 
-    config = load_config()
-    client = AtlassianClient(config)
-    args.func(args, client)
+    if args.group == "conf" and args.command == "publish" and args.dry_run:
+        args.func(args, None)
+        return
+
+    try:
+        args.func(args, AtlassianClient(load_config()))
+    except HTTPError as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -1,14 +1,25 @@
-"""Tests for the markdown -> Confluence storage converter in ``atlas conf publish``.
+"""Tests for Confluence publishing and the Markdown to storage converter.
 
-Covers the five converter bugs documented for well-formed GitHub-flavored
-Markdown. Runnable with pytest or directly: ``python tests/test_conf_publish.py``.
+Runnable with pytest or directly: ``python tests/test_conf_publish.py``.
 """
 
+import hashlib
+import io
 import sys
+from argparse import Namespace
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import TestCase
+from unittest.mock import Mock, patch
+
+from requests import HTTPError, Response
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from atlas import cli  # noqa: E402
+from atlas.client import AtlassianClient  # noqa: E402
+from atlas.commands import conf_publish  # noqa: E402
 from atlas.commands.conf_publish import _markdown_to_storage as convert  # noqa: E402
 
 
@@ -111,6 +122,112 @@ def test_regression_http_and_anchor_link_on_same_line():
         '<p>see <a href="https://ex.com/a">docs</a> and '
         '<ac:link ac:anchor="sec"><ac:link-body>anchor</ac:link-body></ac:link></p>'
     )
+
+
+_DIAGRAM = "```mermaid\ngraph TD\nA --> B\n```"
+_PNG_DATA = b"rendered PNG bytes"
+_ATTACHMENT = f"atlas-diagram-{hashlib.sha256(_PNG_DATA).hexdigest()}.png"
+
+
+def _publish_input(directory, content):
+    path = Path(directory) / "design.md"
+    path.write_text(content, encoding="utf-8")
+    return Namespace(input_file=path, page_id="123", title="Design", minor=False, dry_run=False)
+
+
+def test_second_render_failure_aborts_before_any_api_call():
+    client = Mock(spec=AtlassianClient)
+    error = conf_publish.PublishError("second diagram failed")
+    with TemporaryDirectory() as directory, patch.object(conf_publish.shutil, "which", return_value="mmdc"), \
+            patch.object(conf_publish, "_render_mermaid", side_effect=[_PNG_DATA, error]) as render, \
+            redirect_stderr(io.StringIO()) as stderr, TestCase().assertRaises(SystemExit) as failure:
+        args = _publish_input(directory, f"# Design\n\n{_DIAGRAM}\n\n{_DIAGRAM}")
+        conf_publish.run(args, client)
+    assert failure.exception.code == 1
+    assert render.call_count == 2
+    assert "second diagram failed" in stderr.getvalue()
+    assert client.mock_calls == []
+
+
+def test_missing_renderer_aborts_before_any_api_call():
+    client = Mock(spec=AtlassianClient)
+    with TemporaryDirectory() as directory, patch.object(conf_publish.shutil, "which", return_value=None), \
+            redirect_stderr(io.StringIO()) as stderr, TestCase().assertRaises(SystemExit) as failure:
+        conf_publish.run(_publish_input(directory, _DIAGRAM), client)
+    assert failure.exception.code == 1
+    assert "Mermaid diagrams require mmdc" in stderr.getvalue()
+    assert client.mock_calls == []
+
+
+def test_mermaid_scanner_ignores_examples_and_rejects_unclosed_fences():
+    example = f"````md\n{_DIAGRAM}\n````"
+    assert conf_publish._prepare_diagrams(example) == (example, {})
+    with TestCase().assertRaises(conf_publish.PublishError) as failure:
+        conf_publish._prepare_diagrams("~~~mermaid\ngraph TD\nA --> B")
+    assert "Unclosed Mermaid" in str(failure.exception)
+
+
+def test_dry_run_uses_real_cli_path_without_credentials():
+    with TemporaryDirectory() as directory:
+        args = _publish_input(directory, f"# Design\n\n{_DIAGRAM}\n\n{_DIAGRAM}")
+        argv = ["atlas", "conf", "publish", "123", str(args.input_file), "--title", "Design", "--dry-run"]
+        with patch.object(sys, "argv", argv), patch.object(cli, "load_config") as config, \
+                patch.object(cli, "AtlassianClient") as client, \
+                patch.object(conf_publish.shutil, "which", return_value="mmdc"), \
+                patch.object(conf_publish, "_render_mermaid", return_value=_PNG_DATA), \
+                redirect_stdout(io.StringIO()) as stdout, redirect_stderr(io.StringIO()):
+            cli.main()
+    config.assert_not_called()
+    client.assert_not_called()
+    preview = stdout.getvalue()
+    assert "Dry run for page 123: Design" in preview
+    assert preview.splitlines()[1] == f"Attachments: {_ATTACHMENT}"
+    assert "<h1>Design</h1>" in preview
+    assert preview.count(f'ri:filename="{_ATTACHMENT}"') == 2
+
+
+def test_publish_version_conflict_reports_uploaded_files_and_does_not_retry():
+    client = Mock(spec=AtlassianClient)
+    client.confluence_get.return_value = {"version": {"number": 4}}
+    client.confluence_upload.return_value = True
+    response = Response()
+    response.status_code = 409
+    client.confluence_put.side_effect = HTTPError(response=response)
+    with TemporaryDirectory() as directory, patch.object(conf_publish.shutil, "which", return_value="mmdc"), \
+            patch.object(conf_publish, "_render_mermaid", return_value=_PNG_DATA), \
+            redirect_stdout(io.StringIO()) as stdout, redirect_stderr(io.StringIO()) as stderr, \
+            TestCase().assertRaises(SystemExit) as failure:
+        args = _publish_input(directory, f"{_DIAGRAM}\n\n{_DIAGRAM}")
+        conf_publish.run(args, client)
+    assert failure.exception.code == 1
+    assert stdout.getvalue() == ""
+    assert "Page 123 has a version conflict (read version 4)" in stderr.getvalue()
+    assert f"Attachments uploaded before failure: {_ATTACHMENT}" in stderr.getvalue()
+    assert [entry[0] for entry in client.mock_calls] == ["confluence_get", "confluence_upload", "confluence_put"]
+    client.confluence_upload.assert_called_once_with("123", _ATTACHMENT, _PNG_DATA, "image/png")
+    payload = client.confluence_put.call_args.kwargs["json_body"]
+    assert payload["version"]["number"] == 5
+    assert payload["body"]["storage"]["value"].count(f'ri:filename="{_ATTACHMENT}"') == 2
+
+
+def test_attachment_duplicate_is_reused_only_when_filename_matches():
+    client = AtlassianClient({
+        "atlassian_base_url": "https://example.invalid",
+        "atlassian_email": "example@example.invalid",
+        "atlassian_api_token": "fake-token",
+    })
+    duplicate = Mock(ok=False, status_code=400, text="duplicate")
+    for filename in (_ATTACHMENT, "other.png"):
+        lookup = Mock(ok=True, status_code=200)
+        lookup.json.return_value = {"results": [{"title": filename}]}
+        with patch.object(client.session, "request", side_effect=[duplicate, lookup]) as request:
+            if filename == _ATTACHMENT:
+                assert client.confluence_upload("123", _ATTACHMENT, _PNG_DATA, "image/png") is False
+            else:
+                with TestCase().assertRaises(HTTPError):
+                    client.confluence_upload("123", _ATTACHMENT, _PNG_DATA, "image/png")
+            assert [entry.args[0] for entry in request.call_args_list] == ["POST", "GET"]
+            assert request.call_args.kwargs["params"] == {"filename": _ATTACHMENT}
 
 
 if __name__ == "__main__":

@@ -5,13 +5,21 @@ Confluence storage format, and publishes. Absorbs the logic from the former
 confluence-publish skill's publish_with_diagrams.py.
 """
 
+import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+from requests import HTTPError, RequestException
+
+
+class PublishError(Exception):
+    """A local validation or publication failure."""
 
 
 def register(subparser):
@@ -22,24 +30,35 @@ def register(subparser):
     p.add_argument("input_file", help="Path to markdown file")
     p.add_argument("--title", required=True, help="Page title")
     p.add_argument("--minor", action="store_true", help="Mark as minor edit")
+    p.add_argument(
+        "--dry-run", action="store_true",
+        help="Render locally and preview the page body and attachments without connecting to Confluence",
+    )
     p.set_defaults(func=run)
 
 
 def run(args, client):
-    input_path = Path(args.input_file)
-    if not input_path.exists():
-        print(f"File not found: {input_path}", file=sys.stderr)
+    uploaded = []
+    try:
+        content = Path(args.input_file).read_text(encoding="utf-8")
+        content, attachments = _prepare_diagrams(content)
+        storage_content = _markdown_to_storage(content)
+        if args.dry_run:
+            print(f"Dry run for page {args.page_id}: {args.title}")
+            print(f"Attachments: {', '.join(attachments) or 'none'}")
+            print(f"\n{storage_content}")
+            return
+        _publish(args, client, storage_content, attachments, uploaded)
+    except (PublishError, RequestException, OSError, UnicodeError) as error:
+        print(f"Publish failed: {error}", file=sys.stderr)
+        if uploaded:
+            print(f"Attachments uploaded before failure: {', '.join(uploaded)}", file=sys.stderr)
         sys.exit(1)
 
-    content = input_path.read_text()
 
-    content = _process_diagrams(content, args.page_id, client)
-
-    storage_content = _markdown_to_storage(content)
-
-    current = client.confluence_get(
-        f"content/{args.page_id}", params={"expand": "version"}
-    )
+def _publish(args, client, storage_content, attachments, uploaded):
+    path = f"content/{args.page_id}"
+    current = client.confluence_get(path, params={"expand": "version"})
     version = current["version"]["number"]
 
     payload = {
@@ -54,7 +73,22 @@ def run(args, client):
         },
     }
 
-    client.confluence_put(f"content/{args.page_id}", json_body=payload)
+    for filename, data in attachments.items():
+        print(f"Sending attachment {filename}...", file=sys.stderr)
+        if client.confluence_upload(args.page_id, filename, data, "image/png"):
+            uploaded.append(filename)
+        else:
+            print(f"Reusing attachment {filename}", file=sys.stderr)
+
+    try:
+        client.confluence_put(path, json_body=payload)
+    except HTTPError as error:
+        if error.response.status_code == 409:
+            raise PublishError(
+                f"Page {args.page_id} has a version conflict (read version {version}). "
+                "Review the latest page before publishing again."
+            ) from error
+        raise
 
     base_url = client.base_url.rstrip("/")
     web_link = current.get("_links", {}).get("webui", "")
@@ -65,14 +99,6 @@ def run(args, client):
 # Mermaid diagram rendering
 # ---------------------------------------------------------------------------
 
-def _check_mmdc() -> bool:
-    try:
-        subprocess.run(["mmdc", "--version"], capture_output=True, check=True)
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
-
-
 _CHROME_PATHS = [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/usr/bin/google-chrome",
@@ -80,6 +106,8 @@ _CHROME_PATHS = [
     "/usr/bin/chromium-browser",
     "/usr/bin/chromium",
 ]
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_PNG_END = bytes.fromhex("00000000 49454e44 ae426082")
 
 
 def _find_chrome() -> str | None:
@@ -92,83 +120,74 @@ def _find_chrome() -> str | None:
     return None
 
 
-def _render_mermaid(source: str, output_path: Path) -> bool:
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False) as f:
-        f.write(source)
-        input_path = f.name
-    config_path = None
+def _render_mermaid(renderer: str, source: str, output_path: Path) -> bytes:
+    input_path = output_path.with_suffix(".mmd")
+    input_path.write_text(source, encoding="utf-8")
+    cmd = [renderer, "-i", str(input_path), "-o", str(output_path), "-b", "white", "-s", "2"]
+    chrome = _find_chrome()
+    if chrome:
+        config_path = output_path.with_suffix(".puppeteer.json")
+        config_path.write_text(json.dumps({"executablePath": chrome}), encoding="utf-8")
+        cmd.extend(["-p", str(config_path)])
     try:
-        cmd = ["mmdc", "-i", input_path, "-o", str(output_path), "-b", "white", "-s", "2"]
-        chrome = _find_chrome()
-        if chrome:
-            cfg = tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False,
-            )
-            json.dump({"executablePath": chrome}, cfg)
-            cfg.close()
-            config_path = cfg.name
-            cmd.extend(["-p", config_path])
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            print(f"mmdc error: {result.stderr}", file=sys.stderr)
-            return False
-        return True
-    finally:
-        os.unlink(input_path)
-        if config_path:
-            os.unlink(config_path)
+        result = subprocess.run(cmd, capture_output=True, text=True, errors="replace", timeout=60)
+    except subprocess.TimeoutExpired as error:
+        raise PublishError(f"Mermaid renderer timed out for {output_path.name}") from error
+    if result.returncode != 0:
+        detail = result.stderr.strip() or f"mmdc exited with status {result.returncode}"
+        raise PublishError(f"Mermaid renderer failed for {output_path.name}: {detail}")
+    if not output_path.is_file():
+        raise PublishError(f"Mermaid renderer did not produce {output_path.name}")
+    data = output_path.read_bytes()
+    if not data.startswith(_PNG_SIGNATURE) or not data.endswith(_PNG_END):
+        raise PublishError(f"Mermaid renderer produced an incomplete or invalid PNG: {output_path.name}")
+    return data
 
 
-def _process_diagrams(content: str, page_id: str, client) -> str:
-    pattern = r"```mermaid\n(.*?)```"
-    matches = list(re.finditer(pattern, content, flags=re.DOTALL))
-    if not matches:
-        return content
+_FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$", re.MULTILINE)
 
-    if not _check_mmdc():
-        print(
-            "mmdc not installed (npm install -g @mermaid-js/mermaid-cli). "
-            "Stripping mermaid blocks to avoid garbled output.",
-            file=sys.stderr,
-        )
-        return re.sub(pattern, "", content, flags=re.DOTALL)
 
-    result = content
+def _mermaid_blocks(content: str):
+    """Yield fenced Mermaid blocks, ignoring fences inside other code blocks."""
+    opening = None
+    for match in _FENCE.finditer(content):
+        marker, info = match.groups()
+        if opening is None:
+            if marker[0] == "~" or "`" not in info:
+                opening = match
+        elif not info.strip() and marker.startswith(opening[1]):
+            if opening[2].strip() == "mermaid":
+                yield opening.start(), match.end(), content[opening.end():match.start()].strip()
+            opening = None
+    if opening is not None and opening[2].strip() == "mermaid":
+        raise PublishError("Unclosed Mermaid code block")
+
+
+def _prepare_diagrams(content: str) -> tuple[str, dict[str, bytes]]:
+    blocks = list(_mermaid_blocks(content))
+    if not blocks:
+        return content, {}
+    renderer = shutil.which("mmdc")
+    if renderer is None:
+        raise PublishError("Mermaid diagrams require mmdc (npm install -g @mermaid-js/mermaid-cli)")
+
+    parts = []
+    attachments = {}
     offset = 0
-
-    for i, match in enumerate(matches):
-        diagram_source = match.group(1).strip()
-        diagram_name = f"diagram-{i + 1}.png"
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            img_path = Path(tmpdir) / diagram_name
-            print(f"Rendering {diagram_name}...", file=sys.stderr)
-
-            if not _render_mermaid(diagram_source, img_path):
-                print(f"Failed to render {diagram_name}, removing block.", file=sys.stderr)
-                start = match.start() + offset
-                end_pos = match.end() + offset
-                result = result[:start] + result[end_pos:]
-                offset -= match.end() - match.start()
-                continue
-
-            print(f"Uploading {diagram_name}...", file=sys.stderr)
-            img_data = img_path.read_bytes()
-            client.confluence_upload(page_id, diagram_name, img_data, "image/png")
-
-        image_ref = (
-            '<ac:image ac:align="center" ac:custom-width="true" '
-            f'ac:layout="center" ac:width="550">'
-            f'<ri:attachment ri:filename="{diagram_name}" />'
-            f"</ac:image>"
-        )
-        start = match.start() + offset
-        end = match.end() + offset
-        result = result[:start] + image_ref + result[end:]
-        offset += len(image_ref) - (match.end() - match.start())
-        print(f"Processed {diagram_name}", file=sys.stderr)
-
-    return result
+    with tempfile.TemporaryDirectory() as directory:
+        for index, (start, end, source) in enumerate(blocks, 1):
+            print(f"Rendering diagram {index}...", file=sys.stderr)
+            data = _render_mermaid(renderer, source, Path(directory) / f"diagram-{index}.png")
+            filename = f"atlas-diagram-{hashlib.sha256(data).hexdigest()}.png"
+            attachments[filename] = data
+            parts.extend([
+                content[offset:start],
+                '<ac:image ac:align="center" ac:custom-width="true" ac:layout="center" ac:width="550">'
+                f'<ri:attachment ri:filename="{filename}" /></ac:image>',
+            ])
+            offset = end
+    parts.append(content[offset:])
+    return "".join(parts), attachments
 
 
 # ---------------------------------------------------------------------------

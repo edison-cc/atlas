@@ -1,7 +1,5 @@
 """HTTP client for Jira and Confluence Cloud REST APIs."""
 
-import sys
-
 import requests
 
 
@@ -35,55 +33,30 @@ class AtlassianClient:
     def confluence_put(self, path: str, json_body: dict | None = None) -> dict:
         return self._request("PUT", f"/wiki/rest/api/{path}", json=json_body)
 
-    def confluence_upload(self, page_id: str, filename: str, data: bytes, content_type: str) -> dict:
-        """Upload or update an attachment on a Confluence page (multipart form)."""
-        headers = {"X-Atlassian-Token": "no-check", "Accept": "application/json"}
-        base = f"{self.base_url}/wiki/rest/api/content/{page_id}/child/attachment"
-
-        resp = requests.post(
-            base,
-            auth=self.session.auth,
-            headers=headers,
-            files={"file": (filename, data, content_type)},
-            timeout=30,
-        )
-        if resp.ok:
-            return resp.json()
-
-        if resp.status_code == 400 and "same file name" in resp.text:
-            att_id = self._find_attachment_id(page_id, filename)
-            if att_id:
-                resp2 = requests.post(
-                    f"{base}/{att_id}/data",
-                    auth=self.session.auth,
-                    headers=headers,
-                    files={"file": (filename, data, content_type)},
-                    timeout=30,
-                )
-                if resp2.ok:
-                    return resp2.json()
-                print(f"Attachment update failed ({resp2.status_code}): {resp2.text}", file=sys.stderr)
-                sys.exit(1)
-
-        print(f"Upload failed ({resp.status_code}): {resp.text}", file=sys.stderr)
-        sys.exit(1)
-
-    def _find_attachment_id(self, page_id: str, filename: str) -> str | None:
-        data = self._request(
-            "GET",
-            f"/wiki/rest/api/content/{page_id}/child/attachment",
-            params={"filename": filename},
-        )
-        results = data.get("results", [])
-        return results[0]["id"] if results else None
+    def confluence_upload(self, page_id: str, filename: str, data: bytes, content_type: str) -> bool:
+        """Create a content-addressed attachment. Return False if it already exists."""
+        path = f"/wiki/rest/api/content/{page_id}/child/attachment"
+        try:
+            self._request(
+                "POST", path,
+                headers={"X-Atlassian-Token": "nocheck", "Content-Type": None},
+                files={"file": (filename, data, content_type)},
+            )
+        except requests.HTTPError as error:
+            if error.response.status_code not in (400, 409):
+                raise
+            existing = self._request("GET", path, params={"filename": filename})
+            if any(item.get("title") == filename for item in existing.get("results", [])):
+                return False
+            raise
+        return True
 
     def _request(self, method: str, path: str, **kwargs) -> dict:
         url = f"{self.base_url}{path}"
         kwargs.setdefault("timeout", 30)
         resp = self.session.request(method, url, **kwargs)
         if not resp.ok:
-            print(f"API error ({resp.status_code}): {resp.text}", file=sys.stderr)
-            sys.exit(1)
+            raise requests.HTTPError(f"API error ({resp.status_code}): {resp.text}", response=resp)
         if resp.status_code == 204:
             return {}
         return resp.json()
