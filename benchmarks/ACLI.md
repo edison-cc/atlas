@@ -17,15 +17,15 @@ count separately even when their actions overlap.
 
 | Workflow | Atlas | ACLI 1.3.40 |
 | --- | --- | --- |
-| Jira issue reads and JQL | Markdown by default, JSON on supported reads, issue fields, search, and dedicated parent and recursive children commands | Issue view, JQL and saved filters, selected fields, JSON and CSV search output, counts, and explicit pagination |
+| Jira issue reads and JQL | Markdown by default, JSON on supported reads, multi-key issue lookup, search, and dedicated parent and recursive children commands | Issue view, JQL and saved filters, selected fields, JSON and CSV search output, counts, and explicit pagination |
 | Jira issue changes | Create, update, add a comment, list available transitions, and transition by ID | Create, edit, bulk create and transition, assign, clone, archive, delete, and manage comments, links, watchers, and attachments |
 | Jira administration | Find field IDs by name | Manage fields, projects, boards, sprints, filters, and dashboards |
 | Confluence pages | Read Markdown or storage markup, search with CQL, browse a space tree, create and update pages, and publish Markdown with rendered Mermaid attachments | View pages by ID in storage, ADF, or view format, with optional metadata and direct children |
 | Confluence spaces and blogs | Work with pages in a selected space | List, view, create, update, archive, and restore spaces, plus list, view, and create blog posts |
 
 The command counts describe the exposed CLI surface. From the Atlas source, the
-two product clients use 17 distinct HTTP method and route-template combinations
-(nine Jira, eight Confluence). ACLI's help describes actions rather than the
+two product clients use 18 distinct HTTP method and route-template combinations
+(ten Jira, eight Confluence). ACLI's help describes actions rather than the
 REST calls they make, so this inventory compares supported workflows and leaves
 ACLI's endpoint count unspecified.
 
@@ -68,6 +68,31 @@ The measured Atlas tree combined [the JSON output change](https://github.com/edi
 with [the startup and benchmark change](https://github.com/edison-cc/atlas/commit/be69a152c85ae9664148e034ea9670c730f625a5).
 The [anonymized Jira report](results/atlas-acli-2026-11-08.json) records the exact
 tree ID and individual samples. The run did not instrument HTTP request counts.
+
+## Live Jira bulk read benchmark
+
+On November 8, 2026 (Pacific time), an Apple M3 Max ran three read paths
+against the same Atlassian Cloud site. Atlas used an API token and ACLI
+1.3.40-stable used OAuth. Every round compared issue keys, IDs, summaries,
+and status IDs and names. Each workload used two warm-ups and 21 measured
+rounds with rotating execution order. All 63 measured rounds matched.
+
+| Issues | Atlas one command per issue p50 / p95 (ms) | Atlas multi-key get p50 / p95 (ms) | ACLI batch JQL p50 / p95 (ms) | Observed Atlas requests, single / multi |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 272.1 / 319.2 | 271.1 / 303.4 | 1,125.5 / 1,256.5 | 1 / 1 |
+| 10 | 2,646.7 / 2,750.5 | 290.1 / 365.4 | 1,144.6 / 1,460.9 | 10 / 1 |
+| 16 | 4,243.5 / 4,349.6 | 295.6 / 339.4 | 1,226.3 / 1,411.5 | 16 / 1 |
+
+For one issue, both Atlas invocations used the single-issue endpoint. For
+10 and 16 issues, Atlas used Bulk Fetch and had **75–76% lower median
+end-to-end latency** than ACLI batch JQL. The serial baseline includes a CLI
+startup per issue. Atlas request counts came from a separate live pass that
+counted HTTP adapter sends. ACLI request counts were unavailable.
+
+The site had 16 visible issues. The 50-, 100-, and 101-issue batch boundaries
+were tested with mock responses. The
+[anonymized report](results/atlas-acli-jira-bulk-2026-11-08.json) contains the
+source revision, timing samples, and observed request counts.
 
 ## Live Confluence benchmark
 
@@ -116,6 +141,12 @@ manifest expects the first ten results of a stable query in a test project.
     "fields": ["key", "summary", "status"],
     "limit": 10,
     "count": 10
+  },
+  {
+    "name": "Two known issues",
+    "kind": "bulk",
+    "keys": ["DEMO-2", "DEMO-1"],
+    "fields": ["key", "summary", "status"]
   }
 ]
 ```
@@ -124,6 +155,12 @@ Use `comment` in the issue's field list to compare embedded comments. For a
 Confluence read, use `{"name": "Confluence page", "kind": "page", "id": "123456"}`
 and sign ACLI in to Confluence separately. The runner compares the page ID,
 title, and storage body.
+
+For a bulk case, supply distinct current issue keys visible to both logins.
+The runner measures one Atlas invocation per key, one Atlas invocation with
+all keys, and one ACLI JQL search with pagination enabled. For the one-key
+control both Atlas methods take the original single-issue path. Serial Atlas
+time sums the wall times of its individual CLI calls, including each startup.
 
 ```bash
 python -m benchmarks.benchmark_acli --cases /path/to/local-cases.json \

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="227" viewBox="0 0 780 227" role="img" aria-labelledby="title description">
+  <title id="title">Read 16 Jira issues</title>
+  <desc id="description">Median elapsed time across 21 matched rounds. Atlas Bulk Fetch took 296 milliseconds, ACLI batch JQL took 1,226 milliseconds, and 16 separate Atlas calls took 4,244 milliseconds.</desc>
+  <!-- Source: results/atlas-acli-jira-bulk-2026-11-08.json -->
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; fill: #172033; }
+    .heading { font-size: 23px; font-weight: 700; }
+    .subtitle, .tick { font-size: 14px; fill: #475569; }
+    .label, .value { font-size: 14px; font-weight: 650; }
+    .value { font-variant-numeric: tabular-nums; }
+    .bulk { fill: #1d4ed8; }
+    .baseline { fill: #64748b; }
+  </style>
+  <rect x="0.5" y="0.5" width="779" height="226" rx="14" fill="#f8fafc" stroke="#d8e1ec"/>
+  <text x="24" y="37" class="heading">Read 16 Jira issues</text>
+  <text x="24" y="61" class="subtitle">Median elapsed time (p50) · 21 matched rounds</text>
+  <g stroke="#d8e1ec">
+    <path d="M230 79 V187 M328 79 V187 M426 79 V187 M524 79 V187 M622 79 V187 M720 79 V187"/>
+  </g>
+  <g class="tick" text-anchor="middle">
+    <text x="230" y="208">0</text>
+    <text x="328" y="208">1</text>
+    <text x="426" y="208">2</text>
+    <text x="524" y="208">3</text>
+    <text x="622" y="208">4</text>
+    <text x="720" y="208">5 s</text>
+  </g>
+  <text x="24" y="102" class="label">Atlas Bulk Fetch</text>
+  <rect x="230" y="87" width="28.97" height="20" rx="3" class="bulk"/>
+  <text x="268.97" y="102" class="value">296 ms</text>
+  <text x="24" y="136" class="label">ACLI batch JQL</text>
+  <rect x="230" y="121" width="120.18" height="20" rx="3" class="baseline"/>
+  <text x="360.18" y="136" class="value">1,226 ms</text>
+  <text x="24" y="170" class="label">Atlas one command per issue</text>
+  <rect x="230" y="155" width="415.86" height="20" rx="3" class="baseline"/>
+  <text x="655.86" y="170" class="value">4,244 ms</text>
+</svg>
