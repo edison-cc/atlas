@@ -248,6 +248,7 @@ atlas conf tree DEV  # page hierarchy
 atlas conf create --space DEV --title "New Page" --body "content"
 atlas conf update 12345678 --title "Updated" --body "new content"
 atlas conf publish 12345678 doc.md --title "Design Doc" --dry-run  # preview locally
+atlas conf publish 12345678 doc.md --title "Design Doc" --diff  # compare with the live page
 atlas conf publish 12345678 doc.md --title "Design Doc"  # publish with Mermaid
 atlas conf --help  # list commands
 ```
@@ -256,6 +257,13 @@ For documents with Mermaid, install [Mermaid CLI](https://github.com/mermaid-js/
 (`mmdc`) and configure its browser. Both preview and publish render every diagram
 locally. `--dry-run` prints the target page ID, title, attachment names, and
 Confluence storage markup without Atlassian credentials or API calls.
+
+Use `--diff` to read the current page and compare its title and storage markup
+with the rendered local document. The preview lists proposed attachment names
+and leaves the page and attachments untouched. The body diff compares literal
+storage markup, so Confluence formatting changes can appear in the diff.
+Choose either `--diff` or `--dry-run`. Both exit successfully when the preview
+completes, including when differences are found.
 
 Publish stops before any Confluence writes if local rendering fails. It reuses
 attachments for identical rendered PNGs. If Confluence reports a page version
@@ -278,6 +286,7 @@ exits nonzero and leaves stdout empty.
 | `conf.update` | `id`, `title`, `version` |
 | `conf.publish` | `id`, `title`, `version`, `url`, `dry_run` (`false`), `attachments` (file names) |
 | `conf.publish` with `--dry-run` | `id`, `title`, `dry_run` (`true`), `attachments`, `body` (`format` and `value`) |
+| `conf.publish.diff` | `id`, `version` (current page version), `current_title`, `title`, `changed` (title or body), `diff` (unified storage diff), `attachments` (proposed file names) |
 
 Results reuse the requests already made by the command. Missing response
 fields such as a created resource's ID or a published page's URL appear as

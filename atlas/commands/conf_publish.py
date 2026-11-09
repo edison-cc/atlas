@@ -30,9 +30,14 @@ def register(subparser):
     p.add_argument("input_file", help="Path to markdown file")
     p.add_argument("--title", required=True, help="Page title")
     p.add_argument("--minor", action="store_true", help="Mark as minor edit")
-    p.add_argument(
+    preview = p.add_mutually_exclusive_group()
+    preview.add_argument(
         "--dry-run", action="store_true",
         help="Render locally and preview the page body and attachments without connecting to Confluence",
+    )
+    preview.add_argument(
+        "--diff", action="store_true",
+        help="Compare the rendered page with its current Confluence version without publishing",
     )
     p.add_argument("--json", action="store_true", help="Output the result or preview as JSON")
     p.set_defaults(func=run)
@@ -60,6 +65,9 @@ def run(args, client):
                 print(f"Attachments: {', '.join(attachments) or 'none'}")
                 print(f"\n{storage_content}")
             return
+        if args.diff:
+            _preview_diff(args, client, storage_content, attachments)
+            return
         _publish(args, client, storage_content, attachments, uploaded)
     except (PublishError, RequestException, OSError, UnicodeError) as error:
         message = request_error_message(error) if isinstance(error, RequestException) else str(error)
@@ -67,6 +75,45 @@ def run(args, client):
         if uploaded:
             print(f"Attachments uploaded before failure: {', '.join(uploaded)}", file=sys.stderr)
         sys.exit(1)
+
+
+def _preview_diff(args, client, storage_content, attachments):
+    from difflib import unified_diff
+
+    current = client.confluence_get(
+        f"content/{args.page_id}", params={"expand": "body.storage,version"}
+    )
+    try:
+        current_title = current["title"]
+        current_body = current["body"]["storage"]["value"]
+        version = current["version"]["number"]
+    except (KeyError, TypeError) as error:
+        raise PublishError("Confluence did not return the page title, version, and storage body.") from error
+    if not isinstance(current_body, str):
+        raise PublishError("Confluence returned an invalid storage body.")
+
+    diff = "\n".join(unified_diff(
+        current_body.split("\n"), storage_content.split("\n"),
+        fromfile="current.storage", tofile="proposed.storage", lineterm="",
+    ))
+    title_changed = current_title != args.title
+    changed = title_changed or bool(diff)
+    if args.json:
+        print_json(
+            operation="conf.publish.diff", id=args.page_id, version=version,
+            current_title=current_title, title=args.title, changed=changed,
+            diff=diff, attachments=list(attachments),
+        )
+        return
+
+    print(f"Diff for page {args.page_id} (version {version})")
+    if title_changed:
+        print(f"Title: {current_title!r} -> {args.title!r}")
+    print(f"Proposed attachments: {', '.join(attachments) or 'none'}")
+    if diff:
+        print(f"\n{diff}")
+    elif not changed:
+        print("No title or body changes.")
 
 
 def _publish(args, client, storage_content, attachments, uploaded):

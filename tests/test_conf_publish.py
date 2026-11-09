@@ -145,7 +145,7 @@ _CONFIG = {
 def _publish_input(directory, content):
     path = Path(directory) / "design.md"
     path.write_text(content, encoding="utf-8")
-    return Namespace(input_file=path, page_id="123", title="Design", minor=False, dry_run=False, json=False)
+    return Namespace(input_file=path, page_id="123", title="Design", minor=False, dry_run=False, diff=False, json=False)
 
 
 def test_second_render_failure_aborts_before_any_api_call():
@@ -257,6 +257,110 @@ def _http_response(status, payload):
     response.status_code = status
     response._content = json.dumps(payload).encode("utf-8")
     return response
+
+
+def test_cli_publish_diff_shows_title_body_and_proposed_attachments_with_one_get():
+    current = {
+        "title": "Old design",
+        "version": {"number": 4},
+        "body": {"storage": {"value": "<h1>Old design</h1>"}},
+    }
+    with (
+        TemporaryDirectory() as directory,
+        patch.object(cli, "load_config", return_value=_CONFIG),
+        patch.object(conf_publish.shutil, "which", return_value="mmdc"),
+        patch.object(conf_publish, "_render_mermaid", return_value=_PNG_DATA),
+        patch.object(HTTPAdapter, "send", side_effect=[_http_response(200, current)]) as send,
+        redirect_stdout(io.StringIO()) as stdout,
+        redirect_stderr(io.StringIO()) as stderr,
+    ):
+        args = _publish_input(directory, f"# Design\n\n{_DIAGRAM}\n\n{_DIAGRAM}")
+        argv = ["atlas", "conf", "publish", "123", str(args.input_file), "--title", "Design", "--diff"]
+        with patch.object(sys, "argv", argv):
+            cli.main()
+
+    send.assert_called_once()
+    request = send.call_args.args[0]
+    assert request.method == "GET"
+    assert request.path_url == "/wiki/rest/api/content/123?expand=body.storage%2Cversion"
+    preview = stdout.getvalue()
+    assert "Diff for page 123 (version 4)" in preview
+    assert "Title: 'Old design' -> 'Design'" in preview
+    assert f"Proposed attachments: {_ATTACHMENT}\n" in preview
+    assert "--- current.storage\n+++ proposed.storage" in preview
+    assert "-<h1>Old design</h1>" in preview
+    assert "+<h1>Design</h1>" in preview
+    assert preview.count(f'ri:filename="{_ATTACHMENT}"') == 2
+    assert "Rendering diagram" in stderr.getvalue()
+
+
+def test_cli_publish_diff_json_reports_an_unchanged_page():
+    current = {
+        "title": "Design",
+        "version": {"number": 4},
+        "body": {"storage": {"value": "<h1>Design</h1>"}},
+    }
+    with (
+        TemporaryDirectory() as directory,
+        patch.object(cli, "load_config", return_value=_CONFIG),
+        patch.object(HTTPAdapter, "send", side_effect=[_http_response(200, current)]) as send,
+        redirect_stdout(io.StringIO()) as stdout,
+    ):
+        args = _publish_input(directory, "# Design")
+        argv = ["atlas", "conf", "publish", "123", str(args.input_file), "--title", "Design", "--diff", "--json"]
+        with patch.object(sys, "argv", argv):
+            cli.main()
+
+    send.assert_called_once()
+    assert send.call_args.args[0].method == "GET"
+    assert json.loads(stdout.getvalue()) == {
+        "schema_version": 1,
+        "operation": "conf.publish.diff",
+        "id": "123",
+        "version": 4,
+        "current_title": "Design",
+        "title": "Design",
+        "changed": False,
+        "diff": "",
+        "attachments": [],
+    }
+
+
+def test_publish_diff_fails_if_current_storage_is_unavailable():
+    client = Mock(spec=AtlassianClient)
+    client.confluence_get.return_value = {"title": "Design", "version": {"number": 4}}
+    with (
+        TemporaryDirectory() as directory,
+        redirect_stdout(io.StringIO()) as stdout,
+        redirect_stderr(io.StringIO()) as stderr,
+        TestCase().assertRaises(SystemExit) as failure,
+    ):
+        args = _publish_input(directory, "# Design")
+        args.diff = True
+        args.json = True
+        conf_publish.run(args, client)
+
+    assert failure.exception.code == 1
+    assert stdout.getvalue() == ""
+    assert "storage body" in stderr.getvalue()
+    assert [entry[0] for entry in client.mock_calls] == ["confluence_get"]
+
+
+def test_cli_publish_rejects_combining_diff_with_offline_dry_run():
+    argv = ["atlas", "conf", "publish", "123", "design.md", "--title", "Design", "--diff", "--dry-run"]
+    with (
+        patch.object(sys, "argv", argv),
+        patch.object(cli, "load_config") as config,
+        redirect_stdout(io.StringIO()) as stdout,
+        redirect_stderr(io.StringIO()) as stderr,
+        TestCase().assertRaises(SystemExit) as failure,
+    ):
+        cli.main()
+
+    config.assert_not_called()
+    assert failure.exception.code == 2
+    assert stdout.getvalue() == ""
+    assert "not allowed with argument" in stderr.getvalue()
 
 
 def _renderer_writes(data):
