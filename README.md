@@ -215,13 +215,16 @@ and reports the number of pages loaded as `fetched_count`.
 ### Jira
 
 Jira rejects a search with no restriction, such as `order by created DESC`. Include a project, updated date, or other clause.
-Search shows whether more results are available. For `jira children`, `--limit`
+Search returns one page by default and shows whether more results are available.
+Use `jira search --paginate` to follow all pages. With `--paginate`, an explicit
+`--limit N` caps the total returned across pages. For `jira children`, `--limit`
 sets the requested page size, and Atlas follows every page at each requested depth.
 
 ```bash
 atlas jira get PROJ-123  # issue details
 atlas jira get PROJ-123 --comments  # with comments
 atlas jira search "project = PROJ AND status = Open"  # JQL search
+atlas jira search "project = PROJ ORDER BY key ASC" --paginate --json
 atlas jira search "parent = PROJ-100" --story-points --parent  # extra columns
 atlas jira children PROJ-100 --story-points  # recursive
 atlas jira children PROJ-100 --depth 3 --limit 200  # deeper traversal

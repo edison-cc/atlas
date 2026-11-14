@@ -1,7 +1,11 @@
 """atlas jira search <JQL> -- search issues and display as Markdown table."""
 
 from atlas.config import get_story_points_field, warn_story_points_unconfigured
+from atlas.jira_pagination import has_next_search_page, iter_search_pages
 from atlas.output import pagination, print_json
+
+
+_PAGINATED_PAGE_SIZE = 100
 
 
 def register(subparser):
@@ -13,7 +17,9 @@ def register(subparser):
                     help="Include story points column (requires story_points_field in config)")
     p.add_argument("--parent", action="store_true",
                     help="Include parent key column")
-    p.add_argument("--limit", type=int, default=20, help="Max results (default: 20)")
+    p.add_argument("--limit", type=int,
+                    help="Max results (default: 20 on a single page, unlimited with --paginate)")
+    p.add_argument("--paginate", action="store_true", help="Fetch all pages, up to --limit if specified")
     p.add_argument("--json", action="store_true", help="Output structured JSON")
     p.set_defaults(func=run)
 
@@ -31,20 +37,19 @@ def run(args, client):
     if show_parent and "parent" not in api_fields.split(","):
         api_fields = f"{api_fields},parent"
 
-    params = {
-        "jql": args.jql,
-        "fields": api_fields,
-        "maxResults": args.limit,
-    }
-    data = client.jira_get("search/jql", params=params)
-
-    issues = data.get("issues") or []
+    if args.paginate:
+        issues, total, has_more = _paginated_search(client, args.jql, api_fields, args.limit)
+    else:
+        data = client.jira_get("search/jql", params={
+            "jql": args.jql,
+            "fields": api_fields,
+            "maxResults": 20 if args.limit is None else args.limit,
+        })
+        issues = data.get("issues") or []
+        total = data.get("total")
+        has_more = has_next_search_page(data)
     showing = len(issues)
-    total = data.get("total")
-    has_more = (
-        bool(data.get("nextPageToken")) or data.get("isLast") is False
-        or (total is not None and total > showing)
-    )
+    has_more = has_more or (total is not None and total > showing)
     if args.json:
         print_json(
             items=[{"key": issue.get("key"), "id": issue.get("id"), "fields": issue.get("fields", {})}
@@ -83,6 +88,29 @@ def run(args, client):
             cols.append(_parent_key(fields))
         cols.append(updated)
         print("| " + " | ".join(cols) + " |")
+
+
+def _paginated_search(client, jql, fields, limit):
+    if limit is not None and limit < 1:
+        raise SystemExit("--limit must be positive with --paginate.")
+    query = {
+        "jql": jql,
+        "fields": [field.strip() for field in fields.split(",") if field.strip()],
+        "maxResults": min(limit, _PAGINATED_PAGE_SIZE) if limit is not None else _PAGINATED_PAGE_SIZE,
+    }
+    issues = []
+    total = None
+    for page in iter_search_pages(client, query):
+        issues.extend(page.get("issues") or [])
+        if page.get("total") is not None:
+            total = page["total"]
+        if limit is not None and len(issues) >= limit:
+            has_more = len(issues) > limit or has_next_search_page(page)
+            return issues[:limit], total, has_more
+
+    if total is not None and total > len(issues):
+        raise SystemExit("Jira ended pagination before returning the reported total. Results are incomplete.")
+    return issues, total, False
 
 
 def _build_header(show_sp, show_parent):

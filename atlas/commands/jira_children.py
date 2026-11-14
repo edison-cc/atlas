@@ -1,6 +1,7 @@
 """atlas jira children <KEY> -- list all child issues recursively."""
 
 from atlas.config import get_story_points_field, warn_story_points_unconfigured
+from atlas.jira_pagination import iter_search_pages
 
 
 def register(subparser):
@@ -69,28 +70,14 @@ def _collect_children(client, parent_keys, depth, limit, sp_field):
             "maxResults": limit,
         }
         parent_keys = []
-        for issue in _iter_search_issues(client, query):
-            key = issue["key"]
-            if key not in seen_keys:
-                seen_keys.add(key)
-                parent_keys.append(key)
-                issues.append(issue)
+        for page in iter_search_pages(client, query):
+            for issue in page.get("issues") or []:
+                key = issue["key"]
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    parent_keys.append(key)
+                    issues.append(issue)
     return issues
-
-
-def _iter_search_issues(client, query):
-    seen = set()
-    while True:
-        # A wide level can produce more JQL than fits in a GET URL.
-        page = client.jira_post("search/jql", json_body=query)
-        yield from page.get("issues") or []
-        token = page.get("nextPageToken")
-        if page.get("isLast") is True or (not token and page.get("isLast") is not False):
-            return
-        if not token or token in seen:
-            raise SystemExit("Jira returned an invalid pagination token. Results are incomplete.")
-        seen.add(token)
-        query = {**query, "nextPageToken": token}
 
 
 def _name(obj):
