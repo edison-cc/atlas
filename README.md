@@ -212,6 +212,11 @@ and `has_more`. Confluence `get --json --format storage` puts the original
 markup in `body.value`. Tree JSON applies `--depth` to `roots` and `detached`,
 and reports the number of pages loaded as `fetched_count`.
 
+`jira get --comments` shows how many comments the issue response contains
+and the total reported by Jira. With `--json`, `comments_pagination` contains
+`returned`, `total`, and `has_more`. If Jira omits the total, both `total` and
+`has_more` are null. The original comment data remains in `fields.comment`.
+
 ### Jira
 
 Jira rejects a search with no restriction, such as `order by created DESC`. Include a project, updated date, or other clause.
